@@ -1,2 +1,2 @@
 # ML4NP
-Application of ML for Neutrino Physics experiment LEGEND-200
+Project ML4NP: Application of ML techniques in Neutrino Physics
