@@ -19,7 +19,7 @@
 void output_to_csv(){
     std::ofstream out("output123456789.csv");
     //   Connect file generated in $ROOTSYS/test
-    TFile fileIn("output123456789.root");
+    TFile fileIn("../Data/output123456789.root");
     TTree* theTree = nullptr;    
     TTreeReader theReader("fTree", &fileIn);
 

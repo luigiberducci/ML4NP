@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import argparse
 import math
+import os
 
 particles = {'m': 13, 'n':2112, 'g':22}  # dict particle names -> ids
 
@@ -13,7 +14,8 @@ args = parser.parse_args()
 
 event=args.eventnumber
 plot_interval = 10000
-df = pd.read_csv("output123456789.csv", index_col=False)
+file_path = os.path.join("..", "Data", "output123456789.csv")
+df = pd.read_csv(file_path, index_col=False)
 df = df[df['eventnumber'] == event]
 print("[Info] Event {} loaded. Num entries (only muons, neutrons, photons tracking): {}".format(event, len(df)))
 

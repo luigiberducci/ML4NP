@@ -1,9 +1,6 @@
-tmp
-legend-base
-backup_mppmu_dirs
-cosmicrays.tgz
 Development/xaa
-*/.*
+.*
+./*/.*
 ~*
 *dat
 *root

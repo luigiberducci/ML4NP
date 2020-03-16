@@ -18,8 +18,7 @@
 
 void nuclear_to_csv(){
     std::ofstream out("nuclear123456789.csv");
-    //   Connect file generated in $ROOTSYS/test
-    TFile fileIn("nuclearinfo123456789.root");
+    TFile fileIn("../Data/nuclearinfo123456789.root");  // input file
     TTree* theTree = nullptr;    
     TTreeReader theReader("nuclearTree", &fileIn);
 
