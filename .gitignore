@@ -2,8 +2,10 @@ Development/xaa
 .*
 ./*/.*
 ~*
+./*/~*
 *dat
 *root
 *out
 *csv
+
 
