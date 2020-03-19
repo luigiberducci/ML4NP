@@ -1,3 +1,4 @@
+![ML4NP Logo](https://github.com/luigiberducci/ML4NP/blob/master/ml4np_logo.png)
 # ML4NP
 ML4NP is a project founded by the GARR Grant 2020 for research and study activities. The project aims to develop a fast-decision trigger to tag cosmogenic events (muon passages) for the experiment LEGEND-200.
 
