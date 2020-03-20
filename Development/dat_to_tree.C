@@ -20,7 +20,7 @@
 #include <string>
 
 void dat_to_tree(){
-   std::ifstream inFile("../Data/musunout.dat");     // input dat file
+   std::ifstream inFile("../Data/musun/musunout.dat");     // input dat file
    // create root file with root tree
    TFile f("musun.root", "recreate");
    TTree t1("t1", "tree with muon starting position");
