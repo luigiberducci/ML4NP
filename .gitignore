@@ -1,11 +1,7 @@
 Development/xaa
-\.*
-./*/\.*
+.*
 ~*
-./*/~*
-*dat
-*root
-*out
-*csv
-
-
+*.dat
+*.root
+*.out
+*.csv
