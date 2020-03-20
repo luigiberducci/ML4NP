@@ -15,6 +15,7 @@ args = parser.parse_args()
 event=args.eventnumber
 plot_interval = 10000
 file_path = os.path.join("..", "Data", "output123456789.csv")
+file_path = os.path.join("..", "Data", "output10000.csv")
 df = pd.read_csv(file_path, index_col=False)
 df = df[df['eventnumber'] == event]
 print("[Info] Event {} loaded. All entries: {}\nPlot only muons, electrons, neutrons, photons".format(event, len(df)))
