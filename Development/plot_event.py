@@ -12,26 +12,11 @@ colors = {'e-': 'r', 'e+': 'b', 'm': 'orange', 'n': 'y', 'g': 'g'}   # dict part
 edep_scale = 0.1    # scaling factor to avoid "huge" markers
 
 default_infile = os.path.join("..", "Data", "output10000.csv")
-parser = argparse.ArgumentParser()
-parser.add_argument("--infile", type=argparse.FileType('r'), default=default_infile, help="Input filepath")
-parser.add_argument("eventnumber", type=int, default=0, nargs='?', help="Event number (id)")
-args = parser.parse_args()
+full_df = pd.DataFrame()
 
-file_path = args.infile
-print("[Info]\tLoad file {}".format(file_path.name))
-full_df = pd.read_csv(file_path, index_col=False)
-eventnumbers = full_df.eventnumber.unique()
-print("[Info]\tLoaded. Num events: {}\nAvailable event numbers:\n{}".format(len(eventnumbers), eventnumbers))
-
-while True:
-    try:
-        event = int(input("[Input]\tInsert event number or 'q'..."))
-        if event not in eventnumbers:
-            warnings.warn("no event {} in file {}".format(event, file_path.name))
-    except ValueError:
-        break
+def plot_event(file_path, event):
     df = full_df[full_df['eventnumber'] == event]
-    available_pid = list(df.PID.unique())
+    available_pid = sorted(list(df.PID.unique()))
     selected_pid = sorted(set(particles.values()).intersection(available_pid))
 
     print("[Info]\tEvent {} loaded.\tNum entries: {}".format(event, len(df)))
@@ -84,4 +69,33 @@ while True:
     threedee.set_zlim(-1950, +1950)
     plt.show()
 
-print("[Info] End.")
+def main():
+    global full_df
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--infile", type=argparse.FileType('r'), default=default_infile, help="Input filepath")
+    parser.add_argument("eventnumber", type=int, default=None, nargs='?', help="Event number (id)")
+    args = parser.parse_args()
+
+    file_path = args.infile
+    event = args.eventnumber
+    print("[Info]\tLoad file {}".format(file_path.name))
+    full_df = pd.read_csv(file_path, index_col=False)
+
+    if event is not None:
+        plot_event(file_path, event)
+    else:
+        eventnumbers = full_df.eventnumber.unique()
+        print("[Info]\tLoaded. Num events: {}\nAvailable event numbers:\n{}".format(len(eventnumbers), eventnumbers))
+
+        while True:
+            try:
+                event = int(input("[Input]\tInsert event number or 'q'..."))
+                if event not in eventnumbers:
+                    warnings.warn("no event {} in file {}".format(event, file_path.name))
+            except ValueError:
+                break
+            plot_event(file_path, event)
+    print("[Info] End.")
+
+if __name__=="__main__":
+    main()
