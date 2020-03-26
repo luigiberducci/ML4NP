@@ -19,8 +19,8 @@
 void MGoutput_to_csv(){
     // IO params
     TString dir = "../Data/SimsForGiuseppe/root/";
-    TString fileName = "LGND20014String_bulk_A238_Z92_in_Cables_100000_-132363.root";
-    std::ofstream out("output_AmbRad_A238_Z92_100000.csv");
+    TString fileName = "LGND20014String_bulk_A228_Z90_in_Cables_100000_-132362.root";
+    std::ofstream out("output_AmbRad_A228_Z90_100000.csv");
     // create the tree from input file
     TChain *fTree = new TChain("fTree");
     fTree->Add(dir + fileName);
