@@ -7,11 +7,11 @@ import os
 import warnings
 
 particles = {'e-': 11, 'e+': -11, 'm': 13, 'n': 2112, 'g': 22}  # dict particle names -> ids
-labels = {'e-': 'electron', 'e+': 'positron', 'm': 'muon', 'n': 'neutron', 'g': 'photon'}  # dict particle id->name
-colors = {'e-': 'r', 'e+': 'b', 'm': 'orange', 'n': 'y', 'g': 'g'}   # dict particle colors
+labels = {'e-': 'electron', 'e+': 'positron', 'm': 'muon', 'n': 'neutron', 'g': 'photon', 'ot': 'others'}  # dict particle id->name
+colors = {'e-': 'r', 'e+': 'b', 'm': 'orange', 'n': 'y', 'g': 'g', 'ot': 'black'}   # dict particle colors
 edep_scale = 0.1    # scaling factor to avoid "huge" markers
 
-default_infile = os.path.join("..", "Data", "output10000.csv")
+default_infile = os.path.join("..", "Data", "output_Muon_10000.csv")
 full_df = pd.DataFrame()
 
 def plot_event(file_path, event):
@@ -40,6 +40,9 @@ def plot_event(file_path, event):
     neutr = df_gb.get_group(particles["n"]) if particles['n'] in selected_pid else pd.DataFrame()
     gamma = df_gb.get_group(particles["g"]) if particles['g'] in selected_pid else pd.DataFrame()
 
+    # plot all
+    others = df[~(df.PID.isin(particles.values()))]
+    threedee.scatter(others.x, others.y, others.z, c=colors['ot'], marker='*', s=edep_scale*others.energydeposition)
     # plot muon trajectory (main trajectory)
     if not muons.empty:
         threedee.plot(muons.x, muons.y, muons.z, c=colors['m'])
