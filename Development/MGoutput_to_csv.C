@@ -15,12 +15,13 @@
  *
  * =====================================================================================
  */
+#include<assert.h>
 
 void MGoutput_to_csv(){
     // IO params
     TString dir = "../Data/SimsForGiuseppe/root/";
-    TString fileName = "LGND20014String_bulk_A228_Z90_in_Cables_100000_-132362.root";
-    std::ofstream out("output_AmbRad_A228_Z90_100000.csv");
+    TString fileName = "LGND20014String_bulk_A40_Z19_in_Cables_100000_-132364.root";
+    TString outFileBase = "output_AmbRad_A40_Z19_100000";
     // create the tree from input file
     TChain *fTree = new TChain("fTree");
     fTree->Add(dir + fileName);
@@ -38,15 +39,56 @@ void MGoutput_to_csv(){
         cout<<"NULL fTree"<<endl;
         return;
     }
-    //Print header
-    out << "PID,ParentTrackID,energydeposition,kineticenergy,time,x,y,z,";
-    out << "px,py,pz,eventnumber,tracknumber,creatorprocess,parentnucleusPID";
-    out << endl;
+    std::cout << "[Info] Total number of entries: " << nentries << endl << endl;
+    Int_t maxNumberEventInFile = 25000;   
+    Int_t lastEventIDInFile = -1;     // last eventID in the current file
+    Int_t counterEventInFile = 0;     // num of event in the current file
+    Int_t outFileNumber = 0;          // part id (for out filename)
+    std::ofstream out;
     for(Int_t i = 0; i < nentries ; i++){
-        fTree->GetEntry(i);
-        TString physName;
-        primaries = eventPrimaries->GetStep(0);
+	fTree->GetEntry(i);
         Int_t eventnumber = eventSteps->GetEventID();
+        // Check if we have a new event and reached the max num in curr file
+	if((eventnumber > lastEventIDInFile) & (counterEventInFile % maxNumberEventInFile == 0)){
+            outFileNumber += 1;
+            std::cout << "[Info] Creating " << outFileBase + "_part" + outFileNumber + ".csv" << endl;
+            if(i > 0)    out.close();
+	    out.open(outFileBase + "_part" + outFileNumber + ".csv");
+            //Print header
+            out << "PID,ParentTrackID,energydeposition,kineticenergy,time,x,y,z,";
+            out << "px,py,pz,eventnumber,tracknumber,creatorprocess,parentnucleusPID";
+            out << endl;
+            counterEventInFile = 0;
+	}
+        if(eventnumber > lastEventIDInFile)
+            counterEventInFile += 1;
+        // Extract primary event
+        primaries = eventPrimaries->GetStep(0);     // should be only 1 step with id=0
+	if(primaries == NULL)
+	    continue;
+        Int_t pri_pid = primaries->GetParticleID();
+        Int_t pri_p_trace_id = primaries->GetParentTrackID();
+        Double_t pri_energydeposition = primaries->GetEdep();
+        Double_t pri_kineticenergy = primaries->GetKineticE();
+        Double_t pri_time = primaries->GetT();
+        Double_t pri_x = primaries->GetX();
+        Double_t pri_y = primaries->GetY();
+        Double_t pri_z = primaries->GetZ();
+        Double_t pri_px = primaries->GetPx();
+        Double_t pri_py = primaries->GetPy();
+        Double_t pri_pz = primaries->GetPz();
+        Int_t pri_tracknumber = primaries->GetTrackID();
+        TString pri_creatorprocess = primaries->GetProcessName();
+        Int_t pri_parentnucleusPID = 666;   // to mark that is not implemented
+        // Print each event by row
+        out << pri_pid << "," << pri_p_trace_id << ",";
+        out << pri_energydeposition << "," << pri_kineticenergy << "," << pri_time << ",";
+        out << pri_x << "," << pri_y << "," << pri_z << ",";
+        out << pri_px << "," << pri_py << "," << pri_pz << ",";
+        out << eventnumber << "," << pri_tracknumber  << "," << pri_creatorprocess << ",";
+        out << pri_parentnucleusPID << ",";
+        out << endl;
+	// Extract steps
         for (Int_t j = 0; j < eventSteps->GetNSteps();j++){
             step = eventSteps->GetStep(j);
 
@@ -74,5 +116,9 @@ void MGoutput_to_csv(){
             out << parentnucleusPID << ",";
             out << endl;
         }
+        // Update last event ID in file
+        assert(eventnumber >= lastEventID);	// we assume eventIDs are ordered
+        lastEventIDInFile = eventnumber;
     }
+    std::cout << endl << "[Info] End."<< endl;
 }
