@@ -17,18 +17,16 @@
  */
 
 void cut_output_ROI() {
+    // gSystem->RedirectOutput("cutROI.log");	// workaroung to redirect interpreter output
     // IO params
-    const char * dirIn = "/home/data/";
-    const char * dirOut = "/home/data/ROI";
+    const char * dirIn = "/home/data/";		// to run within docker, use container filepaths
+    const char * dirOut = "/home/data/ROI/";
     char* fullDirIn = gSystem->ExpandPathName(dirIn);
     char* fullDirOut = gSystem->ExpandPathName(dirOut);
     // Loop files in input dir
     void* dirp = gSystem->OpenDirectory(fullDirIn);
     const char* entry;
-    int i=0;
     while((entry = (char*)gSystem->GetDirEntry(dirp))) {
-	i++;
-	if(i>3) break;
         // Filter only output####.root files
         TString fileName = entry;
         TString begin = fileName(0, 6);
