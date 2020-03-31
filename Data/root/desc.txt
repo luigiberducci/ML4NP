@@ -1,1 +1,7 @@
 Keep root files in this folder.
+
+OpticalMapL200XeD.14String.5mm.root:                optimal map from Neil McFadden
+testCR.root:                                        output from sample MaGe production wt testCR_LGND.mac
+output123456789.root, nuclearinfo123456789.root:    ntuple from first muon sample by CJ
+output10000.root:                                   ntuple from 10k muon simulation by CJ
+output10237333.root, nuclearinfo10237333.root:      single file from 2e6 muons simulation by CJ
