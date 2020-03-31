@@ -40,9 +40,9 @@ void merge_trees(){
             fileOut += n_group;
             fileOut += ".root";
             ch.Merge(fileOut);
-            ch.Reset();
             // Debug
-            std::cout << "[Info] Merged in " << fileOut << endl << endl;
+            std::cout << "[Info] Merged " << ch.GetEntries() << " entries in " << fileOut << endl << endl;
+            ch.Reset();
         }
         ch.Add(dirIn + fileName);
         file_k++;
@@ -56,5 +56,5 @@ void merge_trees(){
     fileOut += ".root";
     ch.Merge(fileOut);
     // Debug
-    std::cout << "[Info] Merged in " << fileOut << endl << endl;
+    std::cout << "[Info] Merged " << ch.GetEntries() << " entries in " << fileOut << endl << endl;
 }
