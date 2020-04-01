@@ -20,7 +20,7 @@
 
 void output_to_csv(){
     // IO params
-    TString inFileBase = "output2eROI_part5";
+    TString inFileBase = "output2eROI_part1";
     TFile fileIn("../Data/cutROI/root/" + inFileBase + ".root");
     TString outFileBase = inFileBase;
     // Tree
@@ -45,17 +45,13 @@ void output_to_csv(){
 
     // Loop over entries
     int i=0;
-    Int_t maxNumberEventInFile = 20000;
-    Int_t lastEventIDInFile = -1;     // last eventID in the current file
-    Int_t counterEventInFile = 0;     // num of event in the current file
+    Int_t maxNumberEntriesInFile = 2500000;
     Int_t outFileNumber = 0;          // part id (for out filename)
     std::ofstream out;
     while(theReader.Next()){
-        i++;
         Int_t cur_event = *eventnumber;
-        assert(cur_event >= lastEventID);	// we assume eventIDs are ordered
         // Check if we have a new event and reached the max num in curr file
-	    if((cur_event > lastEventIDInFile) & (counterEventInFile % maxNumberEventInFile == 0)){
+	    if(i % maxNumberEntriesInFile == 0){
             outFileNumber += 1;
             std::cout << "[Info] Creating " << outFileBase + "_part" + outFileNumber + ".csv" << endl;
             if(i > 0)    out.close();
@@ -64,12 +60,8 @@ void output_to_csv(){
             out << "PID,ParentTrackID,energydeposition,kineticenergy,time,x,y,z,";
             out << "px,py,pz,eventnumber,tracknumber,creatorprocess,parentnucleusPID";
             out << endl;
-            counterEventInFile = 0;
 	    }
-        if(cur_event > lastEventIDInFile){
-            counterEventInFile += 1;
-            lastEventIDInFile = cur_event;
-        }
+        i++;
         out << *pid << "," << *p_trace_id << ",";
         out << *energydeposition << "," << *kineticenergy << "," << *time << ",";
         out << *x << "," << *y << "," << *z << ",";
