@@ -10,6 +10,7 @@ sim_dir = os.path.join("..", "Data", "cutROI")
 sim_filebase= "output2eROI_all"
 
 # Get OP map
+print("[Info] Loading optical map: {}".format(map_filebase))
 map_file = ROOT.TFile.Open(os.path.join(map_dir, map_filebase))
 h_map = ROOT.TH3D()
 map_file.GetObject("ProbMapInterior", h_map)
@@ -17,8 +18,6 @@ map_file.GetObject("ProbMapInterior", h_map)
 # Get event
 print("[Info] Loading input file: {}.csv".format(sim_filebase))
 df = pd.read_csv(os.path.join(sim_dir, "{}.csv".format(sim_filebase)), index_col=False)
-import ipdb
-ipdb.set_trace()
 ops = np.zeros((df.shape[0], 1))
 time0 = time.time()
 for i, entry in df.iterrows():
