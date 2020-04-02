@@ -1,5 +1,5 @@
 import ROOT
-import os
+import os, time
 import pandas as pd
 import numpy as np
 
@@ -7,7 +7,7 @@ import numpy as np
 map_dir = os.path.join("..", "Data", "root")
 map_filebase = "OpticalMapL200XeD.14String.5mm.root"
 sim_dir = os.path.join("..", "Data", "cutROI")
-sim_filebase= "output2eROI_all.csv"
+sim_filebase= "output2eROI_all"
 
 # Get OP map
 map_file = ROOT.TFile.Open(os.path.join(map_dir, map_filebase))
@@ -15,18 +15,21 @@ h_map = ROOT.TH3D()
 map_file.GetObject("ProbMapInterior", h_map)
 
 # Get event
-df = pd.read_csv(os.path.join(sim_dir, sim_filebase), index_col=False)
-df = df[df.energydeposition>0]
-eventnumbers = [555, 19343]
-for eventnumber in eventnumbers:
-    print("[Info] Processing event {}".format(eventnumber))
-    event = df[(df.eventnumber==eventnumber)].sort_values("time")
-    OPs = []
-    for entry in event.iterrows():
-        bin = h_map.FindBin(entry.x, entry.y, entry.z)
-        ops = h_map.GetBinContent(bin)
-        OPs.append(ops)
-    event["OPs"] = OPs
-    event.to_csv("event{}_OPs.csv".format(eventnumber))
-    print("[Info] Saved file: event{}_OPs.csv".format(eventnumber))
+print("[Info] Loading input file: {}.csv".format(sim_filebase))
+df = pd.read_csv(os.path.join(sim_dir, "{}.csv".format(sim_filebase)), index_col=False)
+import ipdb
+ipdb.set_trace()
+ops = np.zeros((df.shape[0], 1))
+time0 = time.time()
+for i, entry in df.iterrows():
+    if i % 1000000 == 0:
+        print("[Info] Time: {}, entry: {}".format(time.time()-time0, i+1))
+    if entry.energydeposition <= 0:
+        continue
+    bin = h_map.FindBin(entry.x, entry.y, entry.z)
+    ops[i] = h_map.GetBinContent(bin)
+df["OPs"] = ops
+import ipdb
+ipdb.set_trace()
+df.to_csv("{}_wt_ops.csv".format(sim_filebase))
 print("[Info] Done.")
