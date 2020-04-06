@@ -5,6 +5,7 @@ Notebooks/out/
 ~*
 *.dat
 *.tar
+*.exe
 *.root
 *.out
 *.csv
