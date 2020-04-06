@@ -247,11 +247,11 @@ void data_preparation(const char * dirIn, const char * dirOut){
 int main(){
     cout << "[Info] Preprocessing...\n";
     // Data cleaning
-    const char * dirIn = "/home/luigi/Development/ML4NP/Development/Data/";
-    const char * dirOut = "/home/luigi/Development/ML4NP/Development/Out/";
-    const char * mapDir = "/home/luigi/Development/ML4NP/Data/root/";
-    //data_cleaning(dirIn, dirOut, mapDir);
-    //compact_data(dirOut, dirOut);
+    const char * dirIn = "/home/data/";
+    const char * dirOut = "/home/data/ROI/";
+    const char * mapDir = "/home/data/";
+    data_cleaning(dirIn, dirOut, mapDir);
+    compact_data(dirOut, dirOut);
     // Data preparation
     data_preparation(dirOut, dirOut);
     cout << "[Info] End.\n";
