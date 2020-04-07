@@ -259,24 +259,71 @@ void data_preparation(const char * dirIn, const char * dirOut){
     cout << "[Info] Data preparation: completed.\n";
 }
 
+TString createDatasetOutFile(const char * dirOut, TString prefixOut, Double_t nDeltaT, Double_t DeltaTns){
+    char* fullDirOut = gSystem->ExpandPathName(dirOut);
+    TString outFileName = fullDirOut + prefixOut + "_T";
+    outFileName += nDeltaT * DeltaTns;
+    outFileName += "_DT";
+    outFileName += DeltaTns;
+    outFileName += ".csv";
+    return outFileName;
+}
+
+set<Int_t> getSetOfEventNumbers(TTree *fTree){
+    Int_t eventnumber;
+    fTree->SetBranchAddress("eventnumber", &eventnumber);
+    // Collect distinct event numbers
+    set<Int_t> eventnumbers;
+    for(Long64_t i = 0; i < fTree->GetEntries(); i++){
+        fTree->GetEntry(i);
+        eventnumbers.insert(eventnumber);
+    }
+    return eventnumbers;
+}
+
+vector<vector<Long64_t>> newDatasetEventInstance(Int_t nSiPM, Int_t nDeltaT){
+    vector<vector<Long64_t>> TSiPMEvent;
+    for(int dt = 0; dt < nDeltaT; dt++){
+        vector<Long64_t> dTSiPMSnapshot(nSiPM);
+        TSiPMEvent.push_back(dTSiPMSnapshot);
+    }
+    return TSiPMEvent;
+}
+
+TEntryList* getEntryListOfEvent(TTree *fTree, Int_t eventnumber){
+    // Select entries of event
+    TString selection = "eventnumber==";
+    selection += eventnumber;
+    fTree->Draw(">>entries", selection, "entrylist");
+    TEntryList *elist = (TEntryList*)gDirectory->Get("entries");
+    return elist;
+}
+
 void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefixIn, TString prefixOut){
-    Double_t DeltaTns = 5, nDeltaT = 10, shift = 0;    // T, dT in ns
+    Double_t DeltaTns = 2, shift = 0;    // T, dT in ns
+    Int_t nDeltaT = 40;     // number of Dt for each event
     cout << "[Info] Create dataset wt T=" << nDeltaT * DeltaTns << ", dT=" << DeltaTns << "...\n";
     char* fullDirIn = gSystem->ExpandPathName(dirIn);
-    char* fullDirOut = gSystem->ExpandPathName(dirOut);
+    // Create output file stream
+    ofstream outCSV;
+    TString outFile(createDatasetOutFile(dirOut, prefixOut, nDeltaT, DeltaTns));
+    outCSV.open(outFile);
+    // Write CSV header: number of Dt, Dt in ns, resulting time T
+    outCSV << nDeltaT << "," << DeltaTns << "," << nDeltaT * DeltaTns << "\n";
+    // Loop files in input directory
     void* dirp = gSystem->OpenDirectory(fullDirIn);
     const char* entry;
     while((entry = (char*)gSystem->GetDirEntry(dirp))) {
         TString fileName = entry;
         if(!isRootFile(fileName, prefixIn))   continue;
         cout << "\t" << fullDirIn + fileName << endl;
- 
+        // Open file, get tree and number of sipm
         TFile *f = TFile::Open(fullDirIn + fileName);
         TTree *fTree = (TTree*) f->Get("fTree");
         TParameter<Int_t> *NSiPM = (TParameter<Int_t>*) f->Get("NSiPM");
         const int nSiPM = (const int) NSiPM->GetVal();
-
-
+        // Collect distinct event numbers
+        set<Int_t> eventnumbers = getSetOfEventNumbers(fTree);
         // Connect branches
         Int_t eventnumber;
         Double_t time;
@@ -288,52 +335,37 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
             branchName += sipm;
             fTree->SetBranchAddress(branchName, &SiPM[sipm]);
         }
-
-        // Collect distinct event numbers
-        set<Int_t> eventnumbers;
-        for(Long64_t i = 0; i < fTree->GetEntries(); i++){
-            fTree->GetEntry(i);
-            eventnumbers.insert(eventnumber);
-        }
         // Loop over events
         for(auto event : eventnumbers){
             // Create dataset instance struct
-            vector<vector<Long64_t>> TSiPMEvent;
-            for(int dt = 0; dt < nDeltaT; dt++){
-                vector<Long64_t> dTSiPMSnapshot(nSiPM);
-                TSiPMEvent.push_back(dTSiPMSnapshot);
-            }
-            // Select entries of event
-            TString selection = "eventnumber==";
-            selection += event;
-            fTree->Draw(">>entries", selection, "entrylist");
-            TEntryList *elist = (TEntryList*)gDirectory->Get("entries");
-            cout << "Event " << event << " has " << elist->GetN() << " entries\n";
+            vector<vector<Long64_t>> TSiPMEvent = newDatasetEventInstance(nSiPM, nDeltaT);
             // Loop over event entries
+            TEntryList *elist = getEntryListOfEvent(fTree, event);
             Long64_t eventEntry;
-            while((eventEntry = elist->Next()) >= 0){
+            while((eventEntry = elist->Next()) >= 0){   // when list ends -1
                 fTree->GetEntry(eventEntry);
                 int idDTSnapshot = floor((time + shift) / DeltaTns);
-                if(idDTSnapshot<0 || idDTSnapshot >= nDeltaT){
-                    cerr << "HUGE TIME " << time + shift << " DT " << idDTSnapshot << endl;
-                    continue;
-                }
+                if(idDTSnapshot < 0 || idDTSnapshot >= nDeltaT)
+                    continue;   // all the others are bigger than time T (eventually overflow)
+                // Integrate according to Dt
                 for(int sipm = 0; sipm < nSiPM; sipm++){
                     TSiPMEvent[idDTSnapshot][sipm] += SiPM[sipm];
                 }
             }
+            // Write the event to the out csv file
             for(auto snapshot : TSiPMEvent){
                 for(auto sipm : snapshot)
-                    cout << " " << sipm << ", ";
-                cout << endl;
+                    outCSV << sipm << ",";
+                outCSV << endl;
             }
-            cout << endl;
+            outCSV << endl;
         }
-
+        // Close file and tree
         fTree->Delete();
         f->Close();
         f->Delete();
     }
+    cout << "\tWritten in file " << outFile << endl;
     gSystem->FreeDirectory(dirp);
 }
 
