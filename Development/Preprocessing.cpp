@@ -13,9 +13,10 @@
 
 #define PI 3.14159265
 
-#define TmpROIFilePrefix "tmproi"
-#define OutFilePrefix "roi"
 #define CJSimFilePrefix "output"
+#define TmpROIFilePrefix "tmproi"
+#define OutROIFilePrefix "roi"
+#define TmpSiPMFilePrefix "tmpsipm"
 #define SiPMFilePrefix "sipm"
 
 using namespace std;
@@ -31,28 +32,30 @@ pair<TFile*, TH3D*> getOpticalMap(const char * mapDir){
     return make_pair(mapFile, hMap);
 }
 
-bool isSimulationFile(TString fileName){
-    // Consider files `outputXXXXXX.root`
-    TString begin = fileName(0, 6);
-    if(begin.EqualTo(CJSimFilePrefix) & fileName.EndsWith("root"))
+bool isRootFile(TString fileName, TString prefix){
+    // Consider files `prefixXXXXXX.root`
+    TString begin = fileName(0, prefix.Length());
+    if(begin.EqualTo(prefix) & fileName.EndsWith("root"))
         return true;
     return false;
+}
+
+bool isSimulationFile(TString fileName){
+    // Consider files `outputXXXXXX.root`
+    TString prefix = CJSimFilePrefix;
+    return isRootFile(fileName, prefix);
 }
 
 bool isTmpROIFile(TString fileName){
     // Consider files `tmproiXXXXXX.root`
-    TString begin = fileName(0, 6);
-    if(begin.EqualTo(TmpROIFilePrefix) & fileName.EndsWith("root"))
-        return true;
-    return false;
+    TString prefix = TmpROIFilePrefix;
+    return isRootFile(fileName, prefix);
 }
 
 bool isOutFile(TString fileName){
     // Consider files `roiXXXXXX.root`
-    TString begin = fileName(0, 3);
-    if(begin.EqualTo(OutFilePrefix) & fileName.EndsWith("root"))
-        return true;
-    return false;
+    TString prefix = OutROIFilePrefix;
+    return isRootFile(fileName, prefix);
 }
 
 pair<TFile*, TTree*> getReducedTree(const char * dirIn, const char * dirOut, TString fileName){
@@ -106,12 +109,14 @@ void data_cleaning(const char * dirIn, const char * dirOut, const char * mapDir)
     while((entry = (char*)gSystem->GetDirEntry(dirp))) {
         TString fileName = entry;
         if(!isSimulationFile(fileName))    continue;
-        cout << "\t" << dirIn + fileName << endl;
+        cout << "\t" << dirIn + fileName;
 
         pair<TFile*, TTree*> file_tree_pair = getReducedTree(fullDirIn, fullDirOut, fileName);
         TFile * output = file_tree_pair.first;
         TTree * reducedTree = file_tree_pair.second;
         addDetEfficiencyBranch(reducedTree, hMap);
+        
+        cout << " -> " << fullDirOut << output->GetName() << endl;
         reducedTree->Write();
         reducedTree->Delete();
         output->Close();
@@ -124,9 +129,9 @@ void data_cleaning(const char * dirIn, const char * dirOut, const char * mapDir)
     cout << "[Info] Data cleaning: completed.\n";
 }
 
-void mergeChain(TChain* ch, const char * dirOut, int id_group){
+void mergeChain(TChain* ch, TString dirOut, TString prefix, int id_group){
     TString fileOut(dirOut);
-    fileOut += OutFilePrefix;
+    fileOut += prefix;
     fileOut += "_part";
     fileOut += id_group;
     fileOut += ".root";
@@ -135,7 +140,7 @@ void mergeChain(TChain* ch, const char * dirOut, int id_group){
     cout << "\tMerged " << ch->GetEntries() << " entries in " << fileOut << endl << endl;
 }
 
-void compact_data(const char * dirIn, const char * dirOut){
+void compact_data(const char * dirIn, const char * dirOut, TString prefixIn, TString prefixOut){
     cout << "[Info] Merge data...\n";
     char* fullDirIn = gSystem->ExpandPathName(dirIn);
     char* fullDirOut = gSystem->ExpandPathName(dirOut);
@@ -146,11 +151,11 @@ void compact_data(const char * dirIn, const char * dirOut){
     Int_t id_group = 0;
     while((entry = (char*)gSystem->GetDirEntry(dirp))) {
         TString fileName = entry;
-        if(!isTmpROIFile(fileName))    continue;
+        if(!isRootFile(fileName, prefixIn))    continue;
         cout << "\t" << fullDirIn + fileName << endl;
 
         if(k_entries >= entry_x_file){
-            mergeChain(ch, fullDirOut, ++id_group);
+            mergeChain(ch, fullDirOut, prefixOut, ++id_group);
             k_entries = 0;     // reset counter
             ch->Reset();
         }
@@ -158,7 +163,7 @@ void compact_data(const char * dirIn, const char * dirOut){
         k_entries = ch->GetEntries();
     }
     if(k_entries > 0){
-        mergeChain(ch, fullDirOut, ++id_group);
+        mergeChain(ch, fullDirOut, prefixOut, ++id_group);
         ch->Reset();
     }
     delete ch;
@@ -179,31 +184,34 @@ void data_preparation(const char * dirIn, const char * dirOut){
     while((entry = (char*)gSystem->GetDirEntry(dirp))) {
         TString fileName = entry;
         if(!isOutFile(entry))   continue;
-        cout << "\t" << fullDirIn + fileName << endl;
+        cout << "\t" << fullDirIn + fileName;
 
         TFile *f = TFile::Open(fullDirIn + fileName);
         TTree *fTree = (TTree*) f->Get("fTree");
 
         Double_t x, y, z, time, Edep, deteff;
+        Int_t eventnumber;
         array<Long64_t, nSiPM> readouts;
         fTree->SetBranchAddress("x", &x);
         fTree->SetBranchAddress("y", &y);
         fTree->SetBranchAddress("z", &z);
         fTree->SetBranchAddress("time", &time);
+        fTree->SetBranchAddress("eventnumber", &eventnumber);
         fTree->SetBranchAddress("energydeposition", &Edep);
         fTree->SetBranchAddress("detectionefficiency", &deteff);
 
-        TString SiPMFilePrefixString = SiPMFilePrefix;
+        TString SiPMFilePrefixString = TmpSiPMFilePrefix;
         SiPMFilePrefixString += nSiPM;
         SiPMFilePrefixString += "SiPMs_";
         SiPMFilePrefixString += opYield;
         SiPMFilePrefixString += "Yield";
         TFile *output = TFile::Open(dirOut + fileName.Copy().Replace(0, 3, SiPMFilePrefixString), "RECREATE");
-        TTree SiPMTree("SiPMTree", "title");
+        TTree SiPMTree("fTree", "");
+        TBranch *bN = SiPMTree.Branch("eventnumber", &eventnumber, "eventnumber/I");
+        TBranch *bT = SiPMTree.Branch("time", &time, "time/D");
         TBranch *bX = SiPMTree.Branch("x", &x, "x/D");
         TBranch *bY = SiPMTree.Branch("y", &y, "y/D");
         TBranch *bZ = SiPMTree.Branch("z", &z, "z/D");
-        TBranch *bT = SiPMTree.Branch("time", &time, "time/D");
         TBranch *bE = SiPMTree.Branch("energydeposition", &Edep, "energydeposition/D");
         TBranch *bDE = SiPMTree.Branch("detectionefficiency", &deteff, "detectionefficiency/D");
         array<TBranch*, nSiPM> branchSiPM;
@@ -237,6 +245,7 @@ void data_preparation(const char * dirIn, const char * dirOut){
                 SiPMTree.Fill();
         }
 
+        cout << " -> " << fullDirOut << output->GetName() << endl;
         SiPMTree.Write();
         output->Close();
         output->Delete();
@@ -247,12 +256,18 @@ void data_preparation(const char * dirIn, const char * dirOut){
 int main(){
     cout << "[Info] Preprocessing...\n";
     // Data cleaning
-    const char * dirIn = "/home/data/";
-    const char * dirOut = "/home/data/ROI/";
-    const char * mapDir = "/home/data/";
+    /* const char * dirIn = "/home/data/"; */
+    /* const char * dirOut = "/home/data/ROI/"; */
+    /* const char * mapDir = "/home/data/"; */
+    // Local
+    const char * dirIn = "Data/";
+    const char * dirOut = "Out/";
+    const char * mapDir = "../Data/root/";
+    // Data cleaning
     data_cleaning(dirIn, dirOut, mapDir);
-    compact_data(dirOut, dirOut);
+    compact_data(dirOut, dirOut, TmpROIFilePrefix, OutROIFilePrefix);
     // Data preparation
     data_preparation(dirOut, dirOut);
+    compact_data(dirOut, dirOut, TmpSiPMFilePrefix, SiPMFilePrefix);
     cout << "[Info] End.\n";
 }
