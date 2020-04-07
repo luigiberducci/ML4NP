@@ -1,4 +1,6 @@
 #include <iostream>
+#include <TEntryList.h>
+#include <TParameter.h>
 #include <TFile.h>
 #include <TString.h>
 #include <TTree.h>
@@ -9,6 +11,8 @@
 #include <TSystem.h>
 #include <TRandom.h>
 #include <array>
+#include <vector>
+#include <set>
 #include <assert.h>
 
 #define PI 3.14159265
@@ -207,6 +211,7 @@ void data_preparation(const char * dirIn, const char * dirOut){
         SiPMFilePrefixString += "Yield";
         TFile *output = TFile::Open(dirOut + fileName.Copy().Replace(0, 3, SiPMFilePrefixString), "RECREATE");
         TTree SiPMTree("fTree", "");
+        TParameter<Int_t> *NSiPM = new TParameter<Int_t>("NSiPM", nSiPM);
         TBranch *bN = SiPMTree.Branch("eventnumber", &eventnumber, "eventnumber/I");
         TBranch *bT = SiPMTree.Branch("time", &time, "time/D");
         TBranch *bX = SiPMTree.Branch("x", &x, "x/D");
@@ -247,10 +252,68 @@ void data_preparation(const char * dirIn, const char * dirOut){
 
         cout << " -> " << fullDirOut << output->GetName() << endl;
         SiPMTree.Write();
+        NSiPM->Write();
         output->Close();
         output->Delete();
     }
     cout << "[Info] Data preparation: completed.\n";
+}
+
+void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefixIn, TString prefixOut){
+    Double_t Tns = 1000, DeltaTns = 100;    // T, dT in ns
+    assert(Tns > DeltaTns);
+    cout << "[Info] Create dataset wt T=" << Tns << ", dT=" << DeltaTns << "...\n";
+    char* fullDirIn = gSystem->ExpandPathName(dirIn);
+    char* fullDirOut = gSystem->ExpandPathName(dirOut);
+    void* dirp = gSystem->OpenDirectory(fullDirIn);
+    const char* entry;
+    while((entry = (char*)gSystem->GetDirEntry(dirp))) {
+        TString fileName = entry;
+        if(!isRootFile(fileName, prefixIn))   continue;
+        cout << "\t" << fullDirIn + fileName << endl;
+ 
+        TFile *f = TFile::Open(fullDirIn + fileName);
+        TTree *fTree = (TTree*) f->Get("fTree");
+        TParameter<Int_t> *NSiPM = (TParameter<Int_t>*) f->Get("NSiPM");
+        const Int_t nSiPM = NSiPM->GetVal();
+
+        // Connect branches
+        Int_t eventnumber;
+        fTree->SetBranchAddress("eventnumber", &eventnumber);
+        array<Long64_t, nSiPM> SiPM;
+        for(int sipm = 0; sipm < nSiPM; sipm++){
+            TString branchName = "SiPM";
+            branchName += sipm;
+            fTree->SetBranchAddress(branchName, &SiPM[sipm])
+        }
+
+        // Collect distinct event numbers
+        set<Int_t> eventnumbers;
+        for(Long64_t i = 0; i < fTree->GetEntries(); i++){
+            fTree->GetEntry(i);
+            eventnumbers.insert(eventnumber);
+        }
+        // Loop over events
+        for(auto event : eventnumbers){
+            // Select entries of event
+            TString selection = "eventnumber==";
+            selection += event;
+            fTree->Draw(">>entries", selection, "entrylist");
+            TEntryList *elist = (TEntryList*)gDirectory->Get("entries");
+            cout << "Event " << event << " has " << elist->GetN() << " entries\n";
+            // 
+            Long64_t eventEntry;
+            while((eventEntry = elist->Next()) >= 0){
+                fTree->GetEntry(eventEntry);
+                cout << "Event " << eventnumber << ", entry " << eventEntry << ", SiPM0 " << SiPM[0] << endl;
+            }
+        }
+
+        fTree->Delete();
+        f->Close();
+        f->Delete();
+    }
+    gSystem->FreeDirectory(dirp);
 }
 
 int main(){
@@ -264,10 +327,10 @@ int main(){
     const char * dirOut = "Out/";
     const char * mapDir = "../Data/root/";
     // Data cleaning
-    data_cleaning(dirIn, dirOut, mapDir);
-    compact_data(dirOut, dirOut, TmpROIFilePrefix, OutROIFilePrefix);
+    /* data_cleaning(dirIn, dirOut, mapDir); */
+    /* compact_data(dirOut, dirOut, TmpROIFilePrefix, OutROIFilePrefix); */
     // Data preparation
-    data_preparation(dirOut, dirOut);
-    compact_data(dirOut, dirOut, TmpSiPMFilePrefix, SiPMFilePrefix);
+    /* data_preparation(dirOut, dirOut); */
+    produce_time_dataset(dirOut, dirOut, TmpSiPMFilePrefix, "dataset");
     cout << "[Info] End.\n";
 }
