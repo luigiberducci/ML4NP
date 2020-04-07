@@ -223,7 +223,7 @@ void data_preparation(const char * dirIn, const char * dirOut){
         for(int sipm = 0; sipm < nSiPM; sipm++){
             TString branchName = "SiPM";
             branchName += sipm;
-            TString branchDesc = branchName + "/I";
+            TString branchDesc = branchName + "/L";
             branchSiPM[sipm] = SiPMTree.Branch(branchName, &readouts[sipm], branchDesc);
         }
 
@@ -260,9 +260,8 @@ void data_preparation(const char * dirIn, const char * dirOut){
 }
 
 void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefixIn, TString prefixOut){
-    Double_t Tns = 1000, DeltaTns = 100;    // T, dT in ns
-    assert(Tns > DeltaTns);
-    cout << "[Info] Create dataset wt T=" << Tns << ", dT=" << DeltaTns << "...\n";
+    Double_t DeltaTns = 5, nDeltaT = 10, shift = 0;    // T, dT in ns
+    cout << "[Info] Create dataset wt T=" << nDeltaT * DeltaTns << ", dT=" << DeltaTns << "...\n";
     char* fullDirIn = gSystem->ExpandPathName(dirIn);
     char* fullDirOut = gSystem->ExpandPathName(dirOut);
     void* dirp = gSystem->OpenDirectory(fullDirIn);
@@ -275,16 +274,19 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
         TFile *f = TFile::Open(fullDirIn + fileName);
         TTree *fTree = (TTree*) f->Get("fTree");
         TParameter<Int_t> *NSiPM = (TParameter<Int_t>*) f->Get("NSiPM");
-        const Int_t nSiPM = NSiPM->GetVal();
+        const int nSiPM = (const int) NSiPM->GetVal();
+
 
         // Connect branches
         Int_t eventnumber;
+        Double_t time;
         fTree->SetBranchAddress("eventnumber", &eventnumber);
-        array<Long64_t, nSiPM> SiPM;
+        fTree->SetBranchAddress("time", &time);
+        vector<Long64_t> SiPM(nSiPM);
         for(int sipm = 0; sipm < nSiPM; sipm++){
             TString branchName = "SiPM";
             branchName += sipm;
-            fTree->SetBranchAddress(branchName, &SiPM[sipm])
+            fTree->SetBranchAddress(branchName, &SiPM[sipm]);
         }
 
         // Collect distinct event numbers
@@ -295,18 +297,37 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
         }
         // Loop over events
         for(auto event : eventnumbers){
+            // Create dataset instance struct
+            vector<vector<Long64_t>> TSiPMEvent;
+            for(int dt = 0; dt < nDeltaT; dt++){
+                vector<Long64_t> dTSiPMSnapshot(nSiPM);
+                TSiPMEvent.push_back(dTSiPMSnapshot);
+            }
             // Select entries of event
             TString selection = "eventnumber==";
             selection += event;
             fTree->Draw(">>entries", selection, "entrylist");
             TEntryList *elist = (TEntryList*)gDirectory->Get("entries");
             cout << "Event " << event << " has " << elist->GetN() << " entries\n";
-            // 
+            // Loop over event entries
             Long64_t eventEntry;
             while((eventEntry = elist->Next()) >= 0){
                 fTree->GetEntry(eventEntry);
-                cout << "Event " << eventnumber << ", entry " << eventEntry << ", SiPM0 " << SiPM[0] << endl;
+                int idDTSnapshot = floor((time + shift) / DeltaTns);
+                if(idDTSnapshot >= nDeltaT){
+                    cerr << "HUGE TIME " << time + shift << " DT " << idDTSnapshot << endl;
+                    continue;
+                }
+                for(int sipm = 0; sipm < nSiPM; sipm++){
+                    TSiPMEvent[idDTSnapshot][sipm] += SiPM[sipm];
+                }
             }
+            for(auto snapshot : TSiPMEvent){
+                for(auto sipm : snapshot)
+                    cout << " " << sipm << ", ";
+                cout << endl;
+            }
+            cout << endl;
         }
 
         fTree->Delete();
