@@ -314,7 +314,7 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
             while((eventEntry = elist->Next()) >= 0){
                 fTree->GetEntry(eventEntry);
                 int idDTSnapshot = floor((time + shift) / DeltaTns);
-                if(idDTSnapshot >= nDeltaT){
+                if(idDTSnapshot<0 || idDTSnapshot >= nDeltaT){
                     cerr << "HUGE TIME " << time + shift << " DT " << idDTSnapshot << endl;
                     continue;
                 }
