@@ -46,8 +46,8 @@ void check_simmetry_neil_map(){
                     z = -zz;
                 else
                     z = zz;
-                z = zz;
                 de = hMap->GetBinContent(hMap->FindBin(xx, yy, z));
+                z = zz;
                 fTree->Fill();
                 output << x << ",";
                 output << y << ",";
