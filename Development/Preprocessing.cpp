@@ -6,6 +6,7 @@
 #include <TTree.h>
 #include <TBranch.h>
 #include <TChain.h>
+#include <TH2D.h>
 #include <TH3D.h>
 #include <TROOT.h>
 #include <TSystem.h>
@@ -28,12 +29,15 @@ using namespace std;
 pair<TFile*, TH3D*> getOpticalMap(const char * mapDir){
     TFile *mapFile;
     TH3D *hMap;
+    TH2D *oMap;
     char* fullMapDir = gSystem->ExpandPathName(mapDir);
     // Get Neil's map
     TString mapFileName = "OpticalMapL200XeD.14String.5mm";
     mapFile = TFile::Open(fullMapDir + mapFileName + TString(".root"));
     mapFile->GetObject("ProbMapInterior", hMap);
-    return make_pair(mapFile, hMap);
+    mapFile->GetObject("ProbMapExterior", oMap);
+    pair<TH3D*, TH2D*> map_pair = make_pair(hMap, oMap);
+    return make_pair(mapFile, map_pair);
 }
 
 bool isRootFile(TString fileName, TString prefix){
@@ -83,7 +87,7 @@ pair<TFile*, TTree*> getReducedTree(const char * dirIn, const char * dirOut, TSt
     return make_pair(output, reducedTree);
 }
 
-void addDetEfficiencyBranch(TTree * reducedTree, TH3D * hMap){
+void addDetEfficiencyBranch(TTree * reducedTree, TH3D * hMap, TH2D * oMap){
     Double_t x, y, z, detectionefficiency;
     TBranch *bDEff = reducedTree->Branch("detectionefficiency",
                                          &detectionefficiency,
@@ -93,8 +97,14 @@ void addDetEfficiencyBranch(TTree * reducedTree, TH3D * hMap){
     reducedTree->SetBranchAddress("z",&z);
     for (Long64_t i = 0; i < reducedTree->GetEntries(); i++) {
         reducedTree->GetEntry(i);
-        Int_t bin = hMap->FindBin(x, y, z);
-        detectionefficiency = hMap->GetBinContent(bin);
+        Double_t r = (x^2 + y^2)^.5;    // Euclidean distance ignoring Z
+        if (r >= 300){
+            Int_t bin = oMap->FindBin(r, z);
+            detectionefficiency = hMap->GetBinContent(bin);
+        }else{
+            Int_t bin = hMap->FindBin(x, y, z);
+            detectionefficiency = hMap->GetBinContent(bin);
+        }
         bDEff->Fill();
     }
 }
@@ -104,9 +114,11 @@ void data_cleaning(const char * dirIn, const char * dirOut, const char * mapDir)
     // IO directories
     char* fullDirIn = gSystem->ExpandPathName(dirIn);
     char* fullDirOut = gSystem->ExpandPathName(dirOut);
-    pair<TFile*, TH3D*> pair_file_hmap = getOpticalMap(mapDir);
-    TFile* mapFile = pair_file_hmap.first;
-    TH3D* hMap = pair_file_hmap.second;
+    pair<TFile*, pair<TH3D*, TH2D*>> pair_file_map = getOpticalMap(mapDir);
+    TFile* mapFile = pair_file_map.first;
+    pair<TH3D*, TH2D*> map_pair = pair_file_map.second;
+    TH3D* hMap = map_pair.first;
+    TH2D* oMap = map_pair.second;
 
     void* dirp = gSystem->OpenDirectory(fullDirIn);
     const char* entry;
@@ -118,7 +130,7 @@ void data_cleaning(const char * dirIn, const char * dirOut, const char * mapDir)
         pair<TFile*, TTree*> file_tree_pair = getReducedTree(fullDirIn, fullDirOut, fileName);
         TFile * output = file_tree_pair.first;
         TTree * reducedTree = file_tree_pair.second;
-        addDetEfficiencyBranch(reducedTree, hMap);
+        addDetEfficiencyBranch(reducedTree, hMap, oMap);
         
         cout << " -> " << fullDirOut << output->GetName() << endl;
         reducedTree->Write();
