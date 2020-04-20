@@ -38,7 +38,8 @@ void output_to_csv(TString inFilepath, TString outFileBase="converted_output"){
     TTreeReaderValue<Double_t> pz(theReader, "pz");
     TTreeReaderValue<Int_t> eventnumber(theReader, "eventnumber");
     TTreeReaderValue<Int_t> tracknumber(theReader, "tracknumber");
-    TTreeReaderValue<string> creatorprocess(theReader, "creatorprocess");
+    /* TTreeReaderValue<string> creatorprocess(theReader, "creatorprocess"); */
+    TTreeReaderValue<string> creatorprocess(theReader, "process");
     TTreeReaderValue<Int_t> parentnucleusPID(theReader, "parentnucleusPID");
 
     // Loop over entries
