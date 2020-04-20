@@ -18,7 +18,7 @@
 #include<assert.h>
 
 
-void output_to_csv(TString inFilepath, TString outFileBase="output"){
+void output_to_csv(TString inFilepath, TString outFileBase="converted_output"){
     // IO params
     TFile fileIn(inFilepath);
     // Tree
