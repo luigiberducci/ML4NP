@@ -18,11 +18,9 @@
 #include<assert.h>
 
 
-void output_to_csv(){
+void output_to_csv(TString inFilepath, TString outFileBase="output"){
     // IO params
-    TString inFileBase = "output_Muon_10237333";
-    TFile fileIn("../Data/root/" + inFileBase + ".root");
-    TString outFileBase = inFileBase;
+    TFile fileIn(inFilepath);
     // Tree
     TTree* theTree = nullptr;
     TTreeReader theReader("fTree", &fileIn);
@@ -63,7 +61,7 @@ void output_to_csv(){
 	    }
         i++;
         out << *pid << "," << *p_trace_id << ",";
-        out << *energydeposition << "," << *kineticenergy << "," << *time << ",";
+        out << setprecision(10) <<  *energydeposition << "," << *kineticenergy << "," << *time << ",";
         out << *x << "," << *y << "," << *z << ",";
         out << *px << "," << *py << "," << *pz << ",";
         out << *eventnumber << "," << *tracknumber  << "," << *creatorprocess << ",";
