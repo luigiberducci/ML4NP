@@ -18,9 +18,13 @@
 #include<assert.h>
 
 
-void output_to_csv(TString inFilepath, TString outFileBase="converted_output"){
+void output_to_csv(TString inFilepath){
     // IO params
     TFile fileIn(inFilepath);
+    TObjArray *filepath = inFilepath.Tokenize("/");     // Assume unix-like path
+    TString outFileBase = ((TObjString *)(filepath->At(filepath->GetEntries() - 1)))->String();
+    TObjArray *filename= outFileBase.Tokenize(".");
+    outFileBase = ((TObjString *)(filename->At(0)))->String();
     // Tree
     TTree* theTree = nullptr;
     TTreeReader theReader("fTree", &fileIn);
@@ -62,7 +66,7 @@ void output_to_csv(TString inFilepath, TString outFileBase="converted_output"){
 	    }
         i++;
         out << *pid << "," << *p_trace_id << ",";
-        out << setprecision(10) <<  *energydeposition << "," << *kineticenergy << "," << *time << ",";
+        out << setprecision(15) <<  *energydeposition << "," << *kineticenergy << "," << *time << ",";
         out << *x << "," << *y << "," << *z << ",";
         out << *px << "," << *py << "," << *pz << ",";
         out << *eventnumber << "," << *tracknumber  << "," << *creatorprocess << ",";
