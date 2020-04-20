@@ -13119,10 +13119,17 @@ div#notebook {
 <h1 id="Easter's-homework">Easter's homework<a class="anchor-link" href="#Easter's-homework">&#182;</a></h1><p>In this notebook, I report the activities agreed at ML4NP meeting on 8 April 2020.
 The activities are the following:</p>
 <ol>
-<li>Check for <strong>correspondance</strong> between <strong>energy lost</strong> and <strong>energy deposited</strong> in CJ simulations.</li>
 <li>Analyse what are the <strong>events</strong> that survive at <strong>ROI cut</strong> and what are the events lost. <strong>[Done]</strong></li>
+<li>Check for <strong>correspondance</strong> between <strong>energy lost</strong> and <strong>energy deposited</strong> in CJ simulations. <strong>[Done]</strong></li>
 <li>Compare the energy distribution using a <strong>symmetric OP map</strong> to prove/disconfirm the eventual efficiency in changing the fiber placement. <strong>[Done]</strong></li>
-<li>Produce some <strong>Ar39 toy simulation</strong> with MC script by Mario Schwarz.</li>
+<li>Produce some <strong>Ar39 toy simulation</strong> with MC script by Mario Schwarz. <strong>[Stopped]</strong></li>
+</ol>
+<p>The results of the above activities are:</p>
+<ol>
+<li>The <strong>event cut</strong> concerns <strong>marginal events</strong>. Note that the current data use <strong>only internal optical map</strong> because the external one is bugged. The lost entries is then (hopefully) an <strong>underapproximation of the reality</strong>. Moreover, the previous "60% event lost" is true but it doesn't reflect the lost with respect to entries. In fact, a lot of marginal events have a few entries in the border and then cut off. Then, this 60% reduction doesn't correspond to a real loss of data.</li>
+<li>We define a <strong>terminology</strong> consistent with G4 simulations. We explain <strong>how G4 handles energy</strong> depositions and energy lost. The correspondance in <strong>data present weird things</strong> because of a <strong>lack of observability</strong> that makes hard to reconstruct the simulated dynamics.</li>
+<li>This part uses only the <strong>internal map</strong> and shows that the <strong>lower area</strong> presents a <strong>higher detection efficiency</strong>. However, we hope this will be disconfirmed once integrated with the external map.</li>
+<li>At the moment, the use of <strong>Ar39 toy simulation</strong> is <strong>stopped</strong> because CJ provides us full-scale simulation of Ar39 and I prefer to give them higher priority.</li>
 </ol>
 
 </div>
@@ -13130,7 +13137,7 @@ The activities are the following:</p>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[2]:</div>
+<div class="prompt input_prompt">In&nbsp;[3]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
@@ -13145,13 +13152,6 @@ The activities are the following:</p>
 </div>
 </div>
 
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Correspondance-of-energy-lost-and-deposited">Correspondance of energy lost and deposited<a class="anchor-link" href="#Correspondance-of-energy-lost-and-deposited">&#182;</a></h2>
-</div>
-</div>
 </div>
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
@@ -13172,15 +13172,13 @@ The activities are the following:</p>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[3]:</div>
+<div class="prompt input_prompt">In&nbsp;[4]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Reproduce the result of last-meeting presentation</span>
 <span class="n">dir_in</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;..&quot;</span><span class="p">,</span> <span class="s2">&quot;Data&quot;</span><span class="p">,</span> <span class="s2">&quot;cutROI&quot;</span><span class="p">)</span>
-<span class="n">new_file</span> <span class="o">=</span> <span class="s2">&quot;output2eROI_all_wt_ops.csv&quot;</span>
-<span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;PID&#39;</span><span class="p">,</span> <span class="s1">&#39;energydeposition&#39;</span><span class="p">,</span> <span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="s1">&#39;eventnumber&#39;</span><span class="p">,</span> <span class="s1">&#39;creatorprocess&#39;</span><span class="p">,</span> <span class="s1">&#39;OPs&#39;</span><span class="p">]</span>
-
-
+<span class="n">new_file</span> <span class="o">=</span> <span class="s2">&quot;output2eROI_all_wt_ops.csv&quot;</span>    <span class="c1"># Note: This file uses only Internal Map</span>
+<span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;PID&#39;</span><span class="p">,</span> <span class="s1">&#39;energydeposition&#39;</span><span class="p">,</span> <span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="s1">&#39;time&#39;</span><span class="p">,</span> <span class="s1">&#39;eventnumber&#39;</span><span class="p">,</span> <span class="s1">&#39;creatorprocess&#39;</span><span class="p">,</span> <span class="s1">&#39;OPs&#39;</span><span class="p">]</span>
 
 <span class="n">light_yield</span> <span class="o">=</span> <span class="mi">40</span>    <span class="c1"># number of photons per KeV</span>
 <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dir_in</span><span class="p">,</span> <span class="n">new_file</span><span class="p">),</span> <span class="n">index_col</span><span class="o">=</span><span class="kc">False</span><span class="p">)[</span><span class="n">columns</span><span class="p">]</span>
@@ -13220,7 +13218,7 @@ The activities are the following:</p>
 
 <div class="output_area">
 
-    <div class="prompt output_prompt">Out[3]:</div>
+    <div class="prompt output_prompt">Out[4]:</div>
 
 
 
@@ -13248,6 +13246,7 @@ The activities are the following:</p>
       <th>x</th>
       <th>y</th>
       <th>z</th>
+      <th>time</th>
       <th>eventnumber</th>
       <th>creatorprocess</th>
       <th>OPs</th>
@@ -13264,6 +13263,7 @@ The activities are the following:</p>
       <td>410.980</td>
       <td>174.100</td>
       <td>-946.000</td>
+      <td>44.3455</td>
       <td>210</td>
       <td>eBrem</td>
       <td>0.0</td>
@@ -13278,6 +13278,7 @@ The activities are the following:</p>
       <td>411.045</td>
       <td>174.073</td>
       <td>-946.066</td>
+      <td>44.3460</td>
       <td>210</td>
       <td>phot</td>
       <td>0.0</td>
@@ -13292,6 +13293,7 @@ The activities are the following:</p>
       <td>468.747</td>
       <td>244.047</td>
       <td>-915.800</td>
+      <td>44.0266</td>
       <td>210</td>
       <td>compt</td>
       <td>0.0</td>
@@ -13306,6 +13308,7 @@ The activities are the following:</p>
       <td>491.863</td>
       <td>275.561</td>
       <td>-885.021</td>
+      <td>43.8606</td>
       <td>210</td>
       <td>compt</td>
       <td>0.0</td>
@@ -13320,6 +13323,7 @@ The activities are the following:</p>
       <td>211.392</td>
       <td>-220.104</td>
       <td>-960.597</td>
+      <td>33.9918</td>
       <td>466</td>
       <td>compt</td>
       <td>0.0</td>
@@ -13454,7 +13458,7 @@ The activities are the following:</p>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[8]:</div>
+<div class="prompt input_prompt">In&nbsp;[7]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Partition the data w.r.t. Z axis (entries with x in [-800, +800] and others)</span>
@@ -13520,6 +13524,30 @@ The activities are the following:</p>
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Correspondance-of-energy-lost-and-deposited">Correspondance of energy lost and deposited<a class="anchor-link" href="#Correspondance-of-energy-lost-and-deposited">&#182;</a></h2><p>In the last week, we clarify how G4 handles energy depositions thanks to the emails with Luciano and CJ.
+I briefly summarize the terminology:</p>
+<ul>
+<li><em>energy lost</em>: difference of primary-particle's kinetic energy in two simulation steps.</li>
+<li><em>energy deposited</em>: amount energy locally deposited. It includes energy deposited in the current material (i.e. argon, in the case of muon simulations) by primary particle and secondaries that fall in the range-cut (and then, they are not created).</li>
+</ul>
+<p>Having this in mind, we remark that by conservation of energy, the <strong>sum</strong> of <strong>local energy depositions</strong> with <strong>kinetic energy of secondaries</strong> correspond to the amount of <strong>energy lost</strong> by the primary particle.</p>
+<p>Proving this from data is not easy because:</p>
+<ul>
+<li><strong>particles</strong> move at <strong>light speed</strong> then considering time is not enough to filter the data,</li>
+<li>the <strong>output scheme</strong> has been <strong>reduced</strong> to match storage requirements, then useful fields such as initial position (x, y, z) have been removed.</li>
+</ul>
+<p>Then, the <strong>observed data</strong> could present <strong>wierd things</strong>:</p>
+<ul>
+<li>The sum of kinetic energy of secondaries with local deposition is <strong>far below the energy lost</strong>. This is explained considering that the entries corresponds to energy deposition and not simulation steps, then the kinetic energy is not the original one but rather the one discounted a few steps later. Moreover, other secondaries could be produced that end outside the sensitive region and not being observable.</li>
+<li>The sum of kinetic energy of secondaries with local deposition is <strong>above the energy lost</strong>. This is explained by the counting of energies of other particles, not directly created by the primary in the current step but rather produced previously. Since they move fast and we don't have full simulation data, they become not distinguishable.</li>
+</ul>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
 <h1 id="Impact-of-Z-Symmetry-on-Neil's-Map">Impact of Z-Symmetry on Neil's Map<a class="anchor-link" href="#Impact-of-Z-Symmetry-on-Neil's-Map">&#182;</a></h1><p>Changing the placement of fibers shroud would affect the detection efficiency of OP production.
 In this section, we force the symmetry of detection efficiency reflecting the first half of Neil's map (Z&gt;0) with respect to the origin.
 This reflection aims to reproduce the effect of unenrolling the fibers vertically, placing the SiPM modules on top and bottom of the shroud.</p>
@@ -13543,7 +13571,7 @@ The files are:</p>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[33]:</div>
+<div class="prompt input_prompt">In&nbsp;[8]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="o">%</span><span class="k">reset</span>
@@ -13574,7 +13602,7 @@ The files are:</p>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[35]:</div>
+<div class="prompt input_prompt">In&nbsp;[9]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
@@ -13592,7 +13620,7 @@ The files are:</p>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[36]:</div>
+<div class="prompt input_prompt">In&nbsp;[10]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Load data of original map and symmetric map</span>
@@ -13612,7 +13640,7 @@ The files are:</p>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[37]:</div>
+<div class="prompt input_prompt">In&nbsp;[11]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Print statistics of detection efficiency distributions</span>
@@ -13630,7 +13658,7 @@ The files are:</p>
 
 <div class="output_area">
 
-    <div class="prompt output_prompt">Out[37]:</div>
+    <div class="prompt output_prompt">Out[11]:</div>
 
 
 
@@ -13710,7 +13738,7 @@ In particular, we expect to see significant difference only in the third case.</
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[38]:</div>
+<div class="prompt input_prompt">In&nbsp;[12]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">xpos_map</span> <span class="o">=</span> <span class="n">current_map</span><span class="p">[(</span><span class="n">current_map</span><span class="o">.</span><span class="n">x</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">current_map</span><span class="o">.</span><span class="n">detectionefficiency</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">)]</span>
@@ -13838,7 +13866,7 @@ In particular, we expect to see significant difference only in the third case.</
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[39]:</div>
+<div class="prompt input_prompt">In&nbsp;[13]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Detection efficiency distribution w.r.t. Z-axis</span>
@@ -13892,19 +13920,6 @@ In particular, we expect to see significant difference only in the third case.</
 
 </div>
 </div>
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[&nbsp;]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span> 
-</pre></div>
-
-    </div>
-</div>
-</div>
-
 </div>
     </div>
   </div>
