@@ -98,13 +98,15 @@ void addDetEfficiencyBranch(TTree * reducedTree, TH3D * hMap, TH2D * oMap){
     for (Long64_t i = 0; i < reducedTree->GetEntries(); i++) {
         reducedTree->GetEntry(i);
         Double_t r = (x^2 + y^2)^.5;    // Euclidean distance ignoring Z
-        if (r >= 300){
-            Int_t bin = oMap->FindBin(r, z);
-            detectionefficiency = hMap->GetBinContent(bin);
-        }else{
-            Int_t bin = hMap->FindBin(x, y, z);
-            detectionefficiency = hMap->GetBinContent(bin);
-        }
+        /* if (r >= 300){      // WAIT: exterior map is bugged */
+        /*     Int_t bin = oMap->FindBin(r, z); */
+        /*     detectionefficiency = hMap->GetBinContent(bin); */
+        /* }else{ */
+            /* Int_t bin = hMap->FindBin(x, y, z); */
+            /* detectionefficiency = hMap->GetBinContent(bin); */
+        /* } */
+        Int_t bin = hMap->FindBin(x, y, z);
+        detectionefficiency = hMap->GetBinContent(bin);
         bDEff->Fill();
     }
 }
