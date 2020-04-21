@@ -1,0 +1,42 @@
+Warning in <GATMGTMCEventToAnalysisEventLGND::GATMGTMCEventToAnalysisEventLGND::SlaveBegin()>: Simulated waveforms not found
+Warning in <GATMGTMCEventToAnalysisEventLGND::GATMGTMCEventToAnalysisEventLGND::SlaveBegin()>: MJTRun not found. Output will not be able to be processed with process_mjd_data!
+Warning in <GATMGTMCEventToAnalysisEventLGND::GATMGTMCEventToAnalysisEventLGND::SlaveBegin()>: SSTC tagger not found
+Warning in <GATMGTMCEventToAnalysisEventLGND::GATMGTMCEventToAnalysisEventLGND::SlaveBegin()>: Slow pulse tagger not found
+Info in <TAMSelector::FindLoader>: branch 'eventSteps' use loader TAMTreeBranchLoader
+Info in <TAMSelector::FindLoader>: branch 'eventPrimaries' use loader TAMTreeBranchLoader
+Info in <TAMSelector::FindLoader>: branch 'fMCRun' use loader TAMTreeBranchLoader
+Info in <TAMSelector::FindLoader>: branch 'eventHeader' use loader TAMTreeBranchLoader
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1010502 at ( r, z, e ) = (36.8766, 79.5724, 0.0503144) = (t = -1)
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1011403 at ( r, z, e ) = (12.8663, 1.49921, 0.192848) = (t = -1)
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1010605 at ( r, z, e ) = (35.8429, 0.000915932, 0.0113807) = (t = 0.146957)
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1011304 at ( r, z, e ) = (36.9805, 0.257908, 0.0678649) = (t = -1)
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1010306 at ( r, z, e ) = (11.8716, 0.445727, 0.0133283) = (t = -1)
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1011201 at ( r, z, e ) = (11.9366, 0.847164, 0.254621) = (t = -1)
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1010903 at ( r, z, e ) = (36.9338, 79.5539, 0.0372019) = (t = -1)
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1011406 at ( r, z, e ) = (12.4111, 1.18608, 0.0529439) = (t = -1)
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1011102 at ( r, z, e ) = (10.5381, 0.438168, 0.333354) = (t = -1)
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1010701 at ( r, z, e ) = (36.7661, 79.539, 0.250633) = (t = -1)
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1010102 at ( r, z, e ) = (11.1269, 0.295634, 0.526455) = (t = -1)
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1010804 at ( r, z, e ) = (16.0774, 79.9998, 0.0025046) = (t = -0.546409)
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1010405 at ( r, z, e ) = (10.047, 0.195542, 0.0757993) = (t = -1)
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1011002 at ( r, z, e ) = (36.9243, 0.183272, 0.0295409) = (t = -1)
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1011206 at ( r, z, e ) = (12.6828, 1.50253, 0.275596) = (t = -0.770894)
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1010404 at ( r, z, e ) = (36.9837, 0.523068, 0.0949214) = (t = -0.056206)
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1011301 at ( r, z, e ) = (36.9981, 0.615085, 0.00293051) = (t = -0.451106)
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1011002 at ( r, z, e ) = (11.5021, 0.000677145, 0.00370808) = (t = -1)
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1010906 at ( r, z, e ) = (36.5793, 0.400523, 0.0175898) = (t = -1)
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1011004 at ( r, z, e ) = (11.2684, 1.25589, 0.003648) = (t = -1)
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1011406 at ( r, z, e ) = (12.5233, 0.846891, 0.146784) = (t = -1)
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1011204 at ( r, z, e ) = (36.6288, 79.5722, 0.281998) = (t = -1)
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1010303 at ( r, z, e ) = (20.3803, 79.9999, 0.00526796) = (t = -0.736813)
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1010604 at ( r, z, e ) = (11.9241, 1.40633, 0.191755) = (t = -1)
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1011205 at ( r, z, e ) = (36.647, 79.7924, 0.1166) = (t = -1)
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1010604 at ( r, z, e ) = (36.8801, 0.467997, 0.0290747) = (t = -1)
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1011304 at ( r, z, e ) = (36.8701, 0.0255549, 0.0154762) = (t = -1)
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1010802 at ( r, z, e ) = (36.8593, 79.7512, 0.0954156) = (t = -1)
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1010501 at ( r, z, e ) = (36.9831, 0.457676, 0.0374056) = (t = -1)
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1011101 at ( r, z, e ) = (36.5291, 0.172156, 4.48372e-05) = (t = -1)
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1011101 at ( r, z, e ) = (10.9759, 0.981014, 0.116599) = (t = -1)
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1010403 at ( r, z, e ) = (36.9661, 79.7466, 0.0169748) = (t = -1)
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1011402 at ( r, z, e ) = (36.9526, 0.150157, 0.231338) = (t = -1)
+GATDtHeuristicPsaEmulator::Psa -- Zero-value for time in volume 1010305 at ( r, z, e ) = (8.76495, 0.00884883, 0.0198093) = (t = -0.276512)
