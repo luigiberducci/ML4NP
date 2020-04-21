@@ -66,7 +66,7 @@ void output_to_csv(TString inFilepath){
 	    }
         i++;
         out << *pid << "," << *p_trace_id << ",";
-        out << setprecision(15) <<  *energydeposition << "," << *kineticenergy << "," << *time << ",";
+        out << setprecision(20) <<  *energydeposition << "," << *kineticenergy << "," << *time << ",";
         out << *x << "," << *y << "," << *z << ",";
         out << *px << "," << *py << "," << *pz << ",";
         out << *eventnumber << "," << *tracknumber  << "," << *creatorprocess << ",";
