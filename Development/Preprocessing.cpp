@@ -26,7 +26,7 @@
 
 using namespace std;
 
-pair<TFile*, TH3D*> getOpticalMap(const char * mapDir){
+pair<TFile*, pair<TH3D*, TH2D*>> getOpticalMap(const char * mapDir){
     TFile *mapFile;
     TH3D *hMap;
     TH2D *oMap;
@@ -37,7 +37,8 @@ pair<TFile*, TH3D*> getOpticalMap(const char * mapDir){
     mapFile->GetObject("ProbMapInterior", hMap);
     mapFile->GetObject("ProbMapExterior", oMap);
     pair<TH3D*, TH2D*> map_pair = make_pair(hMap, oMap);
-    return make_pair(mapFile, map_pair);
+    pair<TFile*, pair<TH3D*, TH2D*>> filemap_pair = make_pair(mapFile, map_pair);
+    return filemap_pair;
 }
 
 bool isRootFile(TString fileName, TString prefix){
@@ -97,7 +98,7 @@ void addDetEfficiencyBranch(TTree * reducedTree, TH3D * hMap, TH2D * oMap){
     reducedTree->SetBranchAddress("z",&z);
     for (Long64_t i = 0; i < reducedTree->GetEntries(); i++) {
         reducedTree->GetEntry(i);
-        Double_t r = (x^2 + y^2)^.5;    // Euclidean distance ignoring Z
+        Double_t r = sqrt(x*x + y*y);    // Euclidean distance ignoring Z
         /* if (r >= 300){      // WAIT: exterior map is bugged */
         /*     Int_t bin = oMap->FindBin(r, z); */
         /*     detectionefficiency = hMap->GetBinContent(bin); */
@@ -158,14 +159,14 @@ void mergeChain(TChain* ch, TString dirOut, TString prefix, int id_group){
     cout << "\tMerged " << ch->GetEntries() << " entries in " << fileOut << endl << endl;
 }
 
-void compact_data(const char * dirIn, const char * dirOut, TString prefixIn, TString prefixOut){
+void compact_data(const char * dirIn, const char * dirOut, TString prefixIn, TString prefixOut, Long64_t entry_x_file=2000000){
     cout << "[Info] Merge data...\n";
     char* fullDirIn = gSystem->ExpandPathName(dirIn);
     char* fullDirOut = gSystem->ExpandPathName(dirOut);
     void* dirp = gSystem->OpenDirectory(fullDirIn);
     const char* entry;
     TChain* ch = new TChain("fTree");
-    Long64_t k_entries = 0, entry_x_file = 2000000;
+    Long64_t k_entries = 0;
     Int_t id_group = 0;
     while((entry = (char*)gSystem->GetDirEntry(dirp))) {
         TString fileName = entry;
@@ -386,18 +387,19 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
 int main(){
     cout << "[Info] Preprocessing...\n";
     // Data cleaning
-    /* const char * dirIn = "/home/data/"; */
-    /* const char * dirOut = "/home/data/ROI/"; */
-    /* const char * mapDir = "/home/data/"; */
+    const char * dirIn = "/home/data/Ar39/";
+    const char * dirOut = "/home/data/Ar39Preproc/";
+    const char * mapDir = "/home/data/";
     // Local
-    const char * dirIn = "Data/";
-    const char * dirOut = "Out/";
-    const char * mapDir = "../Data/root/";
+    // const char * dirIn = "Data/";
+    // const char * dirOut = "Out/";
+    // const char * mapDir = "../Data/root/";
     // Data cleaning
-    /* data_cleaning(dirIn, dirOut, mapDir); */
-    /* compact_data(dirOut, dirOut, TmpROIFilePrefix, OutROIFilePrefix); */
+    Long64_t entry_x_file = 3000000;	//Compact root files to have this number of entries
+    data_cleaning(dirIn, dirOut, mapDir);
+    compact_data(dirOut, dirOut, TmpROIFilePrefix, OutROIFilePrefix, entry_x_file);
     // Data preparation
     /* data_preparation(dirOut, dirOut); */
-    produce_time_dataset(dirOut, dirOut, TmpSiPMFilePrefix, "dataset");
+    //produce_time_dataset(dirOut, dirOut, TmpSiPMFilePrefix, "dataset");
     cout << "[Info] End.\n";
 }
