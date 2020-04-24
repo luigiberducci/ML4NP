@@ -10,7 +10,7 @@ Use e.g.
  dist->Write()
 */
 
-const char* mapFile = "LGND200_14_OpticalMapRealisticDetectorLayout.root";
+const char* mapFile = "../Data/root/OpticalMapL200XeD.14String.5mm.root";
 
 TH3D* getMap(){
 	TFile* file = TFile::Open(mapFile, "READ");
@@ -99,7 +99,7 @@ int getPhotonNumber(const std::string& isotope){
 TH1D* getBetaPDF(const std::string& isotope){
 	ifstream dataFile;
 	if(isotope == "Ar39"){
-		dataFile.open("ar39.txt");
+		dataFile.open("../Data/ar39/input_Ar39_ESpectrum.txt");
 	}
 	double e, f, df;
 
