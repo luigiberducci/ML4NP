@@ -14,16 +14,15 @@ const char* mapFile = "../Data/root/OpticalMapL200XeD.14String.5mm.root";
 
 TH3D* getMap(){
 	TFile* file = TFile::Open(mapFile, "READ");
-	return dynamic_cast<TH3D*>(file->Get("OpticalMap_Scaled"));
+	return dynamic_cast<TH3D*>(file->Get("ProbMapInterior"));
 }
-
 
 
 TH1D* getBetaPDF(const std::string& isotope = "Ar39");
 int getBin(double, double, double, int);
 bool pointValid(TH3D* map, double xPos, double yPos, double zPos);
 double readPoint(TH3D* map, double xPos, double yPos, double zPos);
-int getPhotonNumber(const std::string& isotope = "Ar39");	//from random, using 39Ar power spectrum & light yield
+Int_t getPhotonNumber(const std::string& isotope = "Ar39");	//from random, using 39Ar power spectrum & light yield
 void printPoint(TH3D* map, double xPos, double yPos, double zPos);
 
 TRandom3 modnar;
@@ -38,40 +37,56 @@ TH3D* heatMap = getMap();
 * full heat map has xmin/xmax: -700/700, ymin/ymax: -700/700, zmin/zmax: -850/845
 *    --> call getPhotonNrDist(..., 700, 845) should span full map
 */
-TH1D* getPhotonNrDist(uint32_t events, double radius, double halfHeight, const std::string& histName = ""){
+TTree* getPhotonNrDist(uint32_t events, double radius, double halfHeight, const std::string& histName = ""){
 	
 	const char* name = (histName == "") ? std::to_string((int)(modnar.Rndm()*10000)).c_str() : histName.c_str();
 
-	TH1D* distr = new TH1D(name, name, 250, 0., 249.);
+	TH1D* distr = new TH1D(name, name, 1000, 0., 999.);
+
+	// My changes
+	Int_t phNr, peNr;
+	Double_t eDep;
+	TTree *disttree = new TTree(name, name);
+	disttree->Branch("OPproduced", &phNr, "OPproduced/I");
+	disttree->Branch("PEdetected", &peNr, "PEdetected/I");
 	
 	uint32_t currentEvents = 0;
+        Int_t negative_efficiencies = 0;
+        Int_t zero_efficiencies = 0;
 	while(true){
-
-		if(currentEvents%1000==0) std::cout << "\rat: " << currentEvents << std::flush;
+		// if(currentEvents%1000==0) std::cout << "\rat: " << currentEvents << std::flush;
 	
 		double x = modnar.Rndm() * radius * 2 - radius;			//sample in a box first
-		double y =  modnar.Rndm() * radius * 2 - radius;
+		double y = modnar.Rndm() * radius * 2 - radius;
 		double z = modnar.Rndm() * halfHeight * 2 - halfHeight;
 
 		if(x*x + y*y > radius*radius) continue;				//cut cylinder within box
 		//printPoint(heatMap, x, y, z);
 		
 		double mapEff = readPoint(heatMap, x, y, z);		//TODO check if the position makes sense; i.e. if it is filled w/ LAr
-															//for now: assume, that complete volume is LAr, as approximation
+		//for now: assume, that complete volume is LAr, as approximation
 		
-		if(mapEff < 0.) continue;			
+		if(mapEff < 0.) {
+		    negative_efficiencies++;
+		    continue;			
+		}
+		if(mapEff <= 0.) {
+		    zero_efficiencies++;
+		}
+		phNr = getPhotonNumber();
 
-		int phNr = getPhotonNumber();
+		peNr = modnar.Binomial(phNr, mapEff);
 
-		int detPhNr = modnar.Binomial(phNr, mapEff);
-		//std::cout << "  "<< phNr << "  " << mapEff << "  "<<detPhNr <<  std::endl;
+		distr->Fill(peNr);
+		disttree->Fill();
 
-		distr->Fill(detPhNr);
-	
 		currentEvents++;	
 		if(currentEvents >= events) break;
 	}
-	return distr;
+	cout << "Simulated: " << events << ",";
+        cout << "Zero DEff: " << zero_efficiencies << ",";
+	cout << "Neg Deff(anomalies):" << negative_efficiencies << endl;
+	return disttree;
 }
 
 
@@ -79,7 +94,7 @@ TH1D* getPhotonNrDist(uint32_t events, double radius, double halfHeight, const s
 
 
 
-int getPhotonNumber(const std::string& isotope){
+Int_t getPhotonNumber(const std::string& isotope){
 	TH1D* histo;
 	if(isotope == "Ar39") histo = ar39Histo;
 
@@ -92,8 +107,8 @@ int getPhotonNumber(const std::string& isotope){
 	double expectPhotons = energyInkeV * yield;
 
 	//TODO check if we have to use poisson statistics for determining nr of photons produced in the scintillation process
-
-	return modnar.Poisson(expectPhotons);
+	int phNr = modnar.Poisson(expectPhotons);
+	return phNr;
 }
 
 TH1D* getBetaPDF(const std::string& isotope){
