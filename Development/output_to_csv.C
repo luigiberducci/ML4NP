@@ -40,6 +40,7 @@ void output_to_csv(TString inFilepath){
     TTreeReaderValue<Double_t> px(theReader, "px");
     TTreeReaderValue<Double_t> py(theReader, "py");
     TTreeReaderValue<Double_t> pz(theReader, "pz");
+    TTreeReaderValue<Double_t> detectionefficiency(theReader, "detectionefficiency");
     TTreeReaderValue<Int_t> eventnumber(theReader, "inc_eventnumber");
     TTreeReaderValue<Int_t> tracknumber(theReader, "tracknumber");
     //TTreeReaderValue<string> creatorprocess(theReader, "creatorprocess");
@@ -61,7 +62,7 @@ void output_to_csv(TString inFilepath){
 	        out.open(outFileBase + "_part" + outFileNumber + ".csv");
             //Print header
             out << "PID,ParentTrackID,energydeposition,kineticenergy,time,x,y,z,";
-            out << "px,py,pz,eventnumber,tracknumber,creatorprocess,parentnucleusPID";
+            out << "px,py,pz,eventnumber,tracknumber,creatorprocess,parentnucleusPID,detectionefficiency";
             out << endl;
 	    }
         i++;
@@ -70,7 +71,7 @@ void output_to_csv(TString inFilepath){
         out << *x << "," << *y << "," << *z << ",";
         out << *px << "," << *py << "," << *pz << ",";
         out << *eventnumber << "," << *tracknumber  << "," << *creatorprocess << ",";
-        out << *parentnucleusPID << ",";
+        out << *parentnucleusPID << "," << *detectionefficiency << ",";
         out << endl;
    }
    std::cout << "\n[Info] Written " << i << " entries in " << outFileNumber << " files.\n";
