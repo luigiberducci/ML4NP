@@ -46,7 +46,7 @@ TTree* getPhotonNrDist(uint32_t events, double radius, double halfHeight, const 
 	// My changes
 	Int_t phNr, peNr;
 	Double_t eDep;
-	TTree *disttree = new TTree(name, name);
+	TTree * disttree = new TTree(name, name);
 	disttree->Branch("OPproduced", &phNr, "OPproduced/I");
 	disttree->Branch("PEdetected", &peNr, "PEdetected/I");
 	
@@ -54,7 +54,7 @@ TTree* getPhotonNrDist(uint32_t events, double radius, double halfHeight, const 
         Int_t negative_efficiencies = 0;
         Int_t zero_efficiencies = 0;
 	while(true){
-		// if(currentEvents%1000==0) std::cout << "\rat: " << currentEvents << std::flush;
+		if(currentEvents%1000==0) std::cout << "\rat: " << currentEvents << std::flush;
 	
 		double x = modnar.Rndm() * radius * 2 - radius;			//sample in a box first
 		double y = modnar.Rndm() * radius * 2 - radius;
