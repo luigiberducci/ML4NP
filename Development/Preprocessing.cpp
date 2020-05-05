@@ -106,6 +106,7 @@ void addBranches(TTree * reducedTree, TH3D * hMap, TH2D * oMap, Int_t event_x_fi
     for (Long64_t i = 0; i < reducedTree->GetEntries(); i++) {
         reducedTree->GetEntry(i);
         Double_t r = sqrt(x*x + y*y);    // Euclidean distance ignoring Z
+	// TODO: use interior/exterior map, based on coordinate
         /* if (r >= 300){      // WAIT: exterior map is bugged */
         /*     Int_t bin = oMap->FindBin(r, z); */
         /*     detectionefficiency = hMap->GetBinContent(bin); */
@@ -407,10 +408,10 @@ int main(){
     // const char * mapDir = "../Data/root/";
     // Data cleaning
     Long64_t entry_x_file = 3000000;	//Compact root files to have this number of entries
-    data_cleaning(dirIn, dirOut, mapDir);
-    compact_data(dirOut, dirOut, TmpROIFilePrefix, OutROIFilePrefix, entry_x_file);
+    // data_cleaning(dirIn, dirOut, mapDir);
+    // compact_data(dirOut, dirOut, TmpROIFilePrefix, OutROIFilePrefix, entry_x_file);
     // Data preparation
-    /* data_preparation(dirOut, dirOut); */
+    data_preparation(dirOut, dirOut);
     //produce_time_dataset(dirOut, dirOut, TmpSiPMFilePrefix, "dataset");
     cout << "[Info] End.\n";
 }
