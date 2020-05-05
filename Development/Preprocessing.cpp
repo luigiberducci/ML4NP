@@ -82,20 +82,27 @@ pair<TFile*, TTree*> getReducedTree(const char * dirIn, const char * dirOut, TSt
     TString cutE("(energydeposition > 0)");
     // cut original tree
     reducedTree = originalTree->CopyTree(cutX + " & " + cutY + " & " + cutZ);
+    // Debug
+    // cout << "[Cut ROI] File: " << fileName << ", original entries: " << originalTree->GetEntries() << ", reduced entries: " << reducedTree->GetEntries() << endl;
     originalTree->Delete();    // I cannot delete file, otwise seg fault
     file->Close();
     file->Delete();
     return make_pair(output, reducedTree);
 }
 
-void addDetEfficiencyBranch(TTree * reducedTree, TH3D * hMap, TH2D * oMap){
+void addBranches(TTree * reducedTree, TH3D * hMap, TH2D * oMap, Int_t event_x_file, Int_t file_number){
     Double_t x, y, z, detectionefficiency;
     TBranch *bDEff = reducedTree->Branch("detectionefficiency",
                                          &detectionefficiency,
                                          "detectionefficiency/D");
+    Int_t eventnumber, increment_eventnumber;
+    TBranch *bIncENumber = reducedTree->Branch("inc_eventnumber",
+                        	               &increment_eventnumber,
+                                	       "inc_eventnumber/I");
     reducedTree->SetBranchAddress("x",&x);
     reducedTree->SetBranchAddress("y",&y);
     reducedTree->SetBranchAddress("z",&z);
+    reducedTree->SetBranchAddress("eventnumber", &eventnumber);
     for (Long64_t i = 0; i < reducedTree->GetEntries(); i++) {
         reducedTree->GetEntry(i);
         Double_t r = sqrt(x*x + y*y);    // Euclidean distance ignoring Z
@@ -108,7 +115,9 @@ void addDetEfficiencyBranch(TTree * reducedTree, TH3D * hMap, TH2D * oMap){
         /* } */
         Int_t bin = hMap->FindBin(x, y, z);
         detectionefficiency = hMap->GetBinContent(bin);
+        increment_eventnumber = file_number * event_x_file + eventnumber;
         bDEff->Fill();
+        bIncENumber->Fill();	// for ar39 event number overlaps
     }
 }
 
@@ -125,6 +134,7 @@ void data_cleaning(const char * dirIn, const char * dirOut, const char * mapDir)
 
     void* dirp = gSystem->OpenDirectory(fullDirIn);
     const char* entry;
+    Int_t event_x_file = 10000, ar39_file_counter = 0;	// to solve the repeatition of event number of ar39 sims
     while((entry = (char*)gSystem->GetDirEntry(dirp))) {
         TString fileName = entry;
         if(!isSimulationFile(fileName))    continue;
@@ -133,13 +143,14 @@ void data_cleaning(const char * dirIn, const char * dirOut, const char * mapDir)
         pair<TFile*, TTree*> file_tree_pair = getReducedTree(fullDirIn, fullDirOut, fileName);
         TFile * output = file_tree_pair.first;
         TTree * reducedTree = file_tree_pair.second;
-        addDetEfficiencyBranch(reducedTree, hMap, oMap);
+        addBranches(reducedTree, hMap, oMap, event_x_file, ar39_file_counter);
         
         cout << " -> " << fullDirOut << output->GetName() << endl;
         reducedTree->Write();
         reducedTree->Delete();
         output->Close();
         output->Delete();
+	ar39_file_counter++;	// increment file counter to avoid future events' overlaps
     }
     hMap->Delete();
     mapFile->Close();
