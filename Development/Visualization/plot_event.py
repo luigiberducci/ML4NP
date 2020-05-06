@@ -11,7 +11,7 @@ labels = {'e-': 'electron', 'e+': 'positron', 'm': 'muon', 'n': 'neutron', 'g': 
 colors = {'e-': 'r', 'e+': 'b', 'm': 'orange', 'n': 'y', 'g': 'g', 'ot': 'black'}   # dict particle colors
 edep_scale = 0.1    # scaling factor to avoid "huge" markers
 
-default_infile = os.path.join("..", "Data", "output_Muon_10000.csv")
+default_infile = os.path.join("..", "..", "Data", "output_Muon_10000.csv")
 full_df = pd.DataFrame()
 
 def plot_event(file_path, event):
