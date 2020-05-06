@@ -1,9 +1,10 @@
 /*
  * =====================================================================================
  *
- *       Filename:  merge_trees.C
+ *       Filename:  merge_trees.C (DEPRECATED)
  *
- *    Description:  merge trees from multiple root files
+ *    Description:  merge trees from multiple root files. 
+ *    		    This feature is now integrated in `Preprocessing.C`
  *
  *        Version:  1.0
  *        Created:  31/03/2020 19:33:45
