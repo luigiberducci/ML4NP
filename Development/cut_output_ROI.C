@@ -1,9 +1,11 @@
 /*
  * =====================================================================================
  *
- *       Filename:  provaROI.C
+ *       Filename:  cutROI.C  (DEPRECATED)
  *
- *    Description:  
+ *    Description:  Given a simulation file (root), this script cuts all the entries
+ *    		    that are not in the ROI (cube centered in 0,0,0 with sizes 1000x1000x2000).
+ *    		    This feature is not integrated in `Preprocessing.C`.
  *
  *        Version:  1.0
  *        Created:  31/03/2020 16:21:40

@@ -1,9 +1,11 @@
 /*
  * =====================================================================================
  *
- *       Filename:  data_cleaning.C
+ *       Filename:  data_cleaning.C  (DEPRECATED)
  *
- *    Description:  
+ *    Description:  Toy script to implement the "sampling trick" for mapping
+ *    		    energy deposition to local SiPM detection (wt Gaussian distr).
+ *    		    This feature is not integrated in `Preprocessing.C`.
  *
  *        Version:  1.0
  *        Created:  06/04/2020 15:39:00
