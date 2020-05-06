@@ -1,7 +1,7 @@
 /*
  * =====================================================================================
  *
- *       Filename:  cutROI.C  (DEPRECATED)
+ *       Filename:  cut_output_ROI.C  (DEPRECATED)
  *
  *    Description:  Given a simulation file (root), this script cuts all the entries
  *    		    that are not in the ROI (cube centered in 0,0,0 with sizes 1000x1000x2000).
