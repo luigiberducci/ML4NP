@@ -10,11 +10,15 @@ Use e.g.
  dist->Write()
 */
 
+// New Map: Xenon Doping
 const char* mapFile = "../Data/root/OpticalMapL200XeD.14String.5mm.root";
+// Old Map: Regular LAr
+const char* mapFile = "LGND200_14_OpticalMapRealisticDetectorLayout.root";
 
 TH3D* getMap(){
 	TFile* file = TFile::Open(mapFile, "READ");
-	return dynamic_cast<TH3D*>(file->Get("ProbMapInterior"));
+	// return dynamic_cast<TH3D*>(file->Get("ProbMapInterior"));	//NewMap
+	return dynamic_cast<TH3D*>(file->Get("OpticalMap_Scaled"));	//OldMap
 }
 
 
