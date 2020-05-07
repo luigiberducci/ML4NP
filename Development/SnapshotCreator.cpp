@@ -17,6 +17,7 @@
 #include <assert.h>
 
 #define PI 3.14159265
+#define INF 999999999999999999999999999999999999999999999
 
 #define CJSimFilePrefix "output"
 #define TmpROIFilePrefix "tmproi"
@@ -94,8 +95,8 @@ TEntryList* getEntryListOfEvent(TTree *fTree, Int_t eventnumber){
 
 void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefixIn, TString prefixOut){
     // Parameters
-    Double_t DeltaT = 2;    // integration time (ns)
-    Int_t nDeltaT = 40;     // number of successive integrations
+    Double_t DeltaT = 10000;    // integration time (ns)
+    Int_t nDeltaT = 5;     	// number of successive integrations
     int num_shiftings = 100;	// Number of instances for each event
     int min_shifting = 0;	// Interval shifting (min)
     int max_shifting = 100;	// Interval shifting (max)
@@ -105,10 +106,10 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
     cout << "dT=" << DeltaT << "\n";
     // IO management
     ofstream outCSV;
-    TString outFile(createDatasetFilename(dirOut, prefixOut, nDeltaT, DeltaTns));
+    TString outFile(createDatasetFilename(dirOut, prefixOut, nDeltaT, DeltaT));
     outCSV.open(outFile);
     // Write CSV header: number of Dt, Dt in ns, resulting time T
-    outCSV << nDeltaT << "," << DeltaTns << "," << nDeltaT * DeltaTns << "\n";
+    outCSV << nDeltaT << "," << DeltaT << "," << nDeltaT * DeltaT << "\n";
 
     // Loop files in input directory
     char* fullDirIn = gSystem->ExpandPathName(dirIn);
@@ -117,7 +118,7 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
     while((entry = (char*)gSystem->GetDirEntry(dirp))) {
         TString fileName = entry;
         if(!isRootFile(fileName, prefixIn))   continue;
-        cout << "\t" << fullDirIn + fileName << endl;
+        cout << "\t" << fullDirIn + fileName << endl;	// Debug
         // Open file, get tree and number of sipm
         TFile *f = TFile::Open(fullDirIn + fileName);
         TTree *fTree = (TTree*) f->Get("fTree");
@@ -137,21 +138,35 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
         }
         // Loop over events
         set<Int_t> eventnumbers = getSetOfEventNumbers(fTree);
+	Int_t nevents = eventnumbers.size();
+	Int_t ecounter = 0;
         for(auto event : eventnumbers){
+	    ecounter++;
+	    cout << "\t\rat:" << ecounter << "/" << nevents << std::flush;	// Debug
 	    // TODO introduce shifting here!
             // Create empty snapshot struct
             vector<vector<Long64_t>> TSiPMEvent = newDatasetEventInstance(nSiPM, nDeltaT);
             // Loop over event entries
             TEntryList *elist = getEntryListOfEvent(fTree, event);
             Long64_t eventEntry;
+	    // Compute time of first deposit (time0)
+	    Long64_t time0 = INF;
+            while((eventEntry = elist->Next()) >= 0){   // when list ends -1
+		fTree->GetEntry(eventEntry);
+		if (time < time0){
+		    time0 = time;
+		}
+	    }
+	    // Loop entries
+	    elist = getEntryListOfEvent(fTree, event);
             while((eventEntry = elist->Next()) >= 0){   // when list ends -1
                 fTree->GetEntry(eventEntry);
-                int id_time_bin = floor((time + min_shifting) / DeltaT);
+                int id_time_bin = floor((time - time0 + min_shifting) / DeltaT);
                 if(id_time_bin < 0 || id_time_bin >= nDeltaT)
                     continue;   // all the others are bigger than time T (eventually overflow)
                 // Integrate in the time bin
                 for(int sipm = 0; sipm < nSiPM; sipm++){
-                    TSiPMEvent[idDTSnapshot][sipm] += SiPM[sipm];
+                    TSiPMEvent[id_time_bin][sipm] += SiPM[sipm];
                 }
             }
             // Write the event to the out csv file
