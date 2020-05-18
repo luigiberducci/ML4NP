@@ -22,7 +22,7 @@
 #define TmpROIFilePrefix "tmproi"
 #define OutROIFilePrefix "roi"
 #define TmpSiPMFilePrefix "tmpsipm"
-#define SiPMFilePrefix "sipm"
+#define SiPMFilePrefix "SiPM_"
 
 using namespace std;
 
@@ -33,9 +33,16 @@ pair<TFile*, pair<TH3D*, TH2D*>> getOpticalMap(const char * mapDir){
     char* fullMapDir = gSystem->ExpandPathName(mapDir);
     // Get Neil's map
     TString mapFileName = "OpticalMapL200XeD.14String.5mm";
+    TString intMapName = "ProbMapInterior";
+    TString extMapName = "ProbMapExterior";	// this is bugged
+    // Get Old name
+    TString mapFileName = "LGND200_14_OpticalMapRealisticDetectorLayout";
+    TString intMapName = "OpticalMap_Scaled";
+    TString extMapName = "OpticalMap_Scaled";	// same map
+    // Open and load maps
     mapFile = TFile::Open(fullMapDir + mapFileName + TString(".root"));
-    mapFile->GetObject("ProbMapInterior", hMap);
-    mapFile->GetObject("ProbMapExterior", oMap);
+    mapFile->GetObject(intMapName, hMap);
+    mapFile->GetObject(extMapName, oMap);
     pair<TH3D*, TH2D*> map_pair = make_pair(hMap, oMap);
     pair<TFile*, pair<TH3D*, TH2D*>> filemap_pair = make_pair(mapFile, map_pair);
     return filemap_pair;
@@ -106,16 +113,14 @@ void addBranches(TTree * reducedTree, TH3D * hMap, TH2D * oMap, Int_t event_x_fi
     for (Long64_t i = 0; i < reducedTree->GetEntries(); i++) {
         reducedTree->GetEntry(i);
         Double_t r = sqrt(x*x + y*y);    // Euclidean distance ignoring Z
-	// TODO: use interior/exterior map, based on coordinate
-        /* if (r >= 300){      // WAIT: exterior map is bugged */
-        /*     Int_t bin = oMap->FindBin(r, z); */
-        /*     detectionefficiency = hMap->GetBinContent(bin); */
-        /* }else{ */
-            /* Int_t bin = hMap->FindBin(x, y, z); */
-            /* detectionefficiency = hMap->GetBinContent(bin); */
-        /* } */
-        Int_t bin = hMap->FindBin(x, y, z);
-        detectionefficiency = hMap->GetBinContent(bin);
+	// Use interior/exterior map, based on coordinate
+        if (r >= 300){      // WAIT: exterior map is bugged 
+            Int_t bin = oMap->FindBin(r, z);
+            detectionefficiency = hMap->GetBinContent(bin);
+        }else{
+            Int_t bin = hMap->FindBin(x, y, z);
+            detectionefficiency = hMap->GetBinContent(bin);
+        }
         increment_eventnumber = file_number * event_x_file + eventnumber;
         bDEff->Fill();
         bIncENumber->Fill();	// for ar39 event number overlaps
@@ -227,7 +232,7 @@ void data_preparation(const char * dirIn, const char * dirOut){
         fTree->SetBranchAddress("y", &y);
         fTree->SetBranchAddress("z", &z);
         fTree->SetBranchAddress("time", &time);
-        fTree->SetBranchAddress("eventnumber", &eventnumber);
+        fTree->SetBranchAddress("inc_eventnumber", &eventnumber);	//TODO:inc_event for ar39
         fTree->SetBranchAddress("energydeposition", &Edep);
         fTree->SetBranchAddress("detectionefficiency", &deteff);
 

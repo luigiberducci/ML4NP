@@ -63,16 +63,31 @@ TString createDatasetFilename(const char * dirOut, TString prefixOut, Double_t n
     return outFileName;
 }
 
-set<Int_t> getSetOfEventNumbers(TTree *fTree){
+map<Int_t, Double_t> getFirstTimeOfEvents(TTree *fTree){
     Int_t eventnumber;
+    Double_t time;
     fTree->SetBranchAddress("eventnumber", &eventnumber);
+    fTree->SetBranchAddress("time", &time);
     // Collect distinct event numbers
     set<Int_t> eventnumbers;
+    map<Int_t, Double_t> map_event_t0;
     for(Long64_t i = 0; i < fTree->GetEntries(); i++){
         fTree->GetEntry(i);
-        eventnumbers.insert(eventnumber);
+	map<Int_t, Double_t>::iterator it = map_event_t0.find(eventnumber);
+	if ((it != map_event_t0.end()) & (it->second > time))
+            map_event_t0[eventnumber] = time;
     }
-    return eventnumbers;
+    return map_event_t0;
+}
+
+map<Int_t, Double_t> getRndOffsetPerEvents(map<Int_t, Double_t> map_event_t0, Double_t max_offset){
+    map<Int_t, Double_t> map_event_offset;
+    TRandom rnd = TRandom();
+    for(auto event_t0 : map_event_t0){
+	Double_t offset = rnd.Uniform(max_offset);    // unif. rnd [0, maxoffset]
+        map_event_offset[event_t0.first] = offset;
+    }
+    return map_event_offset;
 }
 
 vector<vector<Long64_t>> newDatasetEventInstance(Int_t nSiPM, Int_t nDeltaT){
@@ -93,13 +108,28 @@ TEntryList* getEntryListOfEvent(TTree *fTree, Int_t eventnumber){
     return elist;
 }
 
+void writeSnapshot(vector<vector<Long64_t>> TSiPMEvent, ofstream &outCSV){
+    // Write output
+    for(auto snapshot : TSiPMEvent){
+        for(auto sipm : snapshot){
+            outCSV << sipm << ",";
+            outCSV << endl;
+        }
+    }
+    outCSV << endl;
+}
+
 void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefixIn, TString prefixOut){
     // Parameters
-    Double_t DeltaT = 10000;    // integration time (ns)
-    Int_t nDeltaT = 5;     	// number of successive integrations
+    Double_t DeltaT = 4;    	// integration time (ns) - 4ns is Dt of FlashADC
+    Int_t nDeltaT = 2500;     	// number of successive integrations - 2500 integrations of 4ns are 10us
+    nDeltaT = 10;     	// number of successive integrations - 2500 integrations of 4ns are 10us
+    Double_t margin = 5;	// Margin at the end to avoid partial events -> approx. event length
     int num_shiftings = 100;	// Number of instances for each event
+    num_shiftings = 2;	// Number of instances for each event
     int min_shifting = 0;	// Interval shifting (min)
-    int max_shifting = 100;	// Interval shifting (max)
+    int max_shifting = nDeltaT * DeltaT - margin;	// Interval shifting (max)
+    int group_events = 2;	// Number of events to be grouped in the same snapshot
     // Debug
     cout << "[Info] From files " << dirIn << "/" << prefixIn << "*" <<  endl;
     cout << "[Info] Create snapshot of T=" << nDeltaT * DeltaT << " ns, ";
@@ -137,46 +167,32 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
             fTree->SetBranchAddress(branchName, &SiPM[sipm]);
         }
         // Loop over events
-        set<Int_t> eventnumbers = getSetOfEventNumbers(fTree);
-	Int_t nevents = eventnumbers.size();
-	Int_t ecounter = 0;
-        for(auto event : eventnumbers){
-	    ecounter++;
-	    cout << "\t\rat:" << ecounter << "/" << nevents << std::flush;	// Debug
-	    // TODO introduce shifting here!
-            // Create empty snapshot struct
-            vector<vector<Long64_t>> TSiPMEvent = newDatasetEventInstance(nSiPM, nDeltaT);
-            // Loop over event entries
-            TEntryList *elist = getEntryListOfEvent(fTree, event);
-            Long64_t eventEntry;
-	    // Compute time of first deposit (time0)
-	    Long64_t time0 = INF;
-            while((eventEntry = elist->Next()) >= 0){   // when list ends -1
-		fTree->GetEntry(eventEntry);
-		if (time < time0){
-		    time0 = time;
+        map<Int_t, Double_t> map_event_t0 = getFirstTimeOfEvents(fTree);
+        map<Int_t, Double_t> map_event_offset = getRndOffsetPerEvents(map_event_t0, max_shifting);
+	Int_t nevents = map_event_t0.size();
+	Int_t ecounter = 0, last_event = -1;
+        vector<vector<Long64_t>> TSiPMEvent = newDatasetEventInstance(nSiPM, nDeltaT);
+        for(Int_t i=0; i < fTree->GetEntries(); i++){
+	    fTree->GetEntry(i);
+	    if(eventnumber != last_event){	// New Event
+	    	last_event = eventnumber;
+		ecounter++;
+	        if(ecounter % group_events == 1){
+		    if(ecounter > 1)
+	                writeSnapshot(TSiPMEvent, outCSV);
+            	    TSiPMEvent = newDatasetEventInstance(nSiPM, nDeltaT);
 		}
 	    }
-	    // Loop entries
-	    elist = getEntryListOfEvent(fTree, event);
-            while((eventEntry = elist->Next()) >= 0){   // when list ends -1
-                fTree->GetEntry(eventEntry);
-                int id_time_bin = floor((time - time0 + min_shifting) / DeltaT);
-                if(id_time_bin < 0 || id_time_bin >= nDeltaT)
-                    continue;   // all the others are bigger than time T (eventually overflow)
-                // Integrate in the time bin
-                for(int sipm = 0; sipm < nSiPM; sipm++){
-                    TSiPMEvent[id_time_bin][sipm] += SiPM[sipm];
-                }
+	    Double_t shifted_time = time - map_event_t0[eventnumber] + map_event_offset[eventnumber];
+            int id_time_bin = floor((shifted_time) / DeltaT);
+            if(id_time_bin < 0 || id_time_bin >= nDeltaT){
+	        cout << "[Info] Skipped entry out-of-time. Entry: " << i << ", Event: " << eventnumber << endl; 
+                continue;   // all the others are bigger than time T (eventually overflow)
+	    }
+            // Integrate in the time bin
+            for(int sipm = 0; sipm < nSiPM; sipm++){
+            	TSiPMEvent[id_time_bin][sipm] += SiPM[sipm];
             }
-            // Write the event to the out csv file
-	    // TODO: add check empty snapshot (all zero non write it)
-            for(auto snapshot : TSiPMEvent){
-                for(auto sipm : snapshot)
-                    outCSV << sipm << ",";
-                outCSV << endl;
-            }
-            outCSV << endl;
         }
         // Close file and tree
         fTree->Delete();
