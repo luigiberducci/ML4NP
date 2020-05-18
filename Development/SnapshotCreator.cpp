@@ -108,17 +108,6 @@ TEntryList* getEntryListOfEvent(TTree *fTree, Int_t eventnumber){
     return elist;
 }
 
-void writeSnapshot(vector<vector<Long64_t>> TSiPMEvent, ofstream &outCSV){
-    // Write output
-    for(auto snapshot : TSiPMEvent){
-        for(auto sipm : snapshot){
-            outCSV << sipm << ",";
-            outCSV << endl;
-        }
-    }
-    outCSV << endl;
-}
-
 void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefixIn, TString prefixOut){
     // Parameters
     Double_t DeltaT = 4;    	// integration time (ns) - 4ns is Dt of FlashADC
@@ -162,24 +151,35 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
         fTree->SetBranchAddress("time", &time);
         vector<Long64_t> SiPM(nSiPM);
         for(int sipm = 0; sipm < nSiPM; sipm++){
-            TString branchName = "SiPM";
+            TString branchName = "Slice";
             branchName += sipm;
             fTree->SetBranchAddress(branchName, &SiPM[sipm]);
         }
         // Loop over events
         map<Int_t, Double_t> map_event_t0 = getFirstTimeOfEvents(fTree);
+	cout << "Firs time event 11 " << map_event_t0[11] << endl;
+	exit(0);
         map<Int_t, Double_t> map_event_offset = getRndOffsetPerEvents(map_event_t0, max_shifting);
 	Int_t nevents = map_event_t0.size();
 	Int_t ecounter = 0, last_event = -1;
         vector<vector<Long64_t>> TSiPMEvent = newDatasetEventInstance(nSiPM, nDeltaT);
         for(Int_t i=0; i < fTree->GetEntries(); i++){
 	    fTree->GetEntry(i);
+            cout << "Event: " << eventnumber << ", Time: " << time << endl;
 	    if(eventnumber != last_event){	// New Event
 	    	last_event = eventnumber;
 		ecounter++;
 	        if(ecounter % group_events == 1){
-		    if(ecounter > 1)
-	                writeSnapshot(TSiPMEvent, outCSV);
+		    if(ecounter > 1){
+		        // Write output
+    		        for(auto snapshot : TSiPMEvent){
+			    for(auto sipm : snapshot){
+			        outCSV << sipm << ",";
+			        outCSV << endl;
+			    }
+		        }
+                        outCSV << endl;
+                    }
             	    TSiPMEvent = newDatasetEventInstance(nSiPM, nDeltaT);
 		}
 	    }
@@ -206,11 +206,11 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
 int main(){
     cout << "[Info] Snapshot Dataset Creator...\n";
     // LGND Docker filesystem
-    // const char * dirIn = "/home/data/Ar39/";
-    // const char * dirOut = "/home/data/Ar39Preproc/";
+    const char * dirIn = "/home/data/Ar39Preproc/";
+    const char * dirOut = "/home/data/Ar39Preproc/";
     // Local
-    const char * dirIn = "./";
-    const char * dirOut = "Out/";
+    // const char * dirIn = "./";
+    // const char * dirOut = "Out/";
     produce_time_dataset(dirIn, dirOut, "SiPMTrace_Ar39_", "Ar39_Snapshots_");
     cout << "[Info] End.\n";
 }

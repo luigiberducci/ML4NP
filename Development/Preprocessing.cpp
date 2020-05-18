@@ -32,9 +32,9 @@ pair<TFile*, pair<TH3D*, TH2D*>> getOpticalMap(const char * mapDir){
     TH2D *oMap;
     char* fullMapDir = gSystem->ExpandPathName(mapDir);
     // Get Neil's map
-    TString mapFileName = "OpticalMapL200XeD.14String.5mm";
-    TString intMapName = "ProbMapInterior";
-    TString extMapName = "ProbMapExterior";	// this is bugged
+    // TString mapFileName = "OpticalMapL200XeD.14String.5mm";
+    // TString intMapName = "ProbMapInterior";
+    // TString extMapName = "ProbMapExterior";	// this is bugged
     // Get Old name
     TString mapFileName = "LGND200_14_OpticalMapRealisticDetectorLayout";
     TString intMapName = "OpticalMap_Scaled";
@@ -253,7 +253,7 @@ void data_preparation(const char * dirIn, const char * dirOut){
         TBranch *bDE = SiPMTree.Branch("detectionefficiency", &deteff, "detectionefficiency/D");
         array<TBranch*, nSiPM> branchSiPM;
         for(int sipm = 0; sipm < nSiPM; sipm++){
-            TString branchName = "SiPM";
+            TString branchName = "Slice";
             branchName += sipm;
             TString branchDesc = branchName + "/L";
             branchSiPM[sipm] = SiPMTree.Branch(branchName, &readouts[sipm], branchDesc);
