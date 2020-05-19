@@ -6,7 +6,7 @@ import matplotlib as matlib
 import matplotlib.pyplot as plt
 
 # Input params
-filepath = os.path.join("..", "SiPMTrace_Ar39_72SiPM_40Yield.root")
+filepath = os.path.join("..", "SiPMTrace_Ar39_72Slices_40Yield.root")
 eventnumber = 100
 delta_interval = 100000  # ns
 discrete_interval = '1us'

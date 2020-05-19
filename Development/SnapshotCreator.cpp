@@ -73,9 +73,10 @@ map<Int_t, Double_t> getFirstTimeOfEvents(TTree *fTree){
     map<Int_t, Double_t> map_event_t0;
     for(Long64_t i = 0; i < fTree->GetEntries(); i++){
         fTree->GetEntry(i);
-	map<Int_t, Double_t>::iterator it = map_event_t0.find(eventnumber);
-	if ((it != map_event_t0.end()) & (it->second > time))
-            map_event_t0[eventnumber] = time;
+	    map<Int_t, Double_t>::iterator it = map_event_t0.find(eventnumber);
+	    if ((it == map_event_t0.end()) || (it->second > time)) {
+            map_event_t0.insert(make_pair(eventnumber, time));
+        }
     }
     return map_event_t0;
 }
@@ -112,8 +113,8 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
     // Parameters
     Double_t DeltaT = 4;    	// integration time (ns) - 4ns is Dt of FlashADC
     Int_t nDeltaT = 2500;     	// number of successive integrations - 2500 integrations of 4ns are 10us
-    nDeltaT = 10;     	// number of successive integrations - 2500 integrations of 4ns are 10us
-    Double_t margin = 5;	// Margin at the end to avoid partial events -> approx. event length
+    nDeltaT = 25;           	// number of successive integrations - 2500 integrations of 4ns are 10us
+    Double_t margin = 5;	    // Margin at the end to avoid partial events -> approx. event length
     int num_shiftings = 100;	// Number of instances for each event
     num_shiftings = 2;	// Number of instances for each event
     int min_shifting = 0;	// Interval shifting (min)
@@ -127,6 +128,7 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
     ofstream outCSV;
     TString outFile(createDatasetFilename(dirOut, prefixOut, nDeltaT, DeltaT));
     outCSV.open(outFile);
+    cout << "[Info] Writing in " << outFile << "...\n";
     // Write CSV header: number of Dt, Dt in ns, resulting time T
     outCSV << nDeltaT << "," << DeltaT << "," << nDeltaT * DeltaT << "\n";
 
@@ -143,6 +145,14 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
         TTree *fTree = (TTree*) f->Get("fTree");
         TParameter<Int_t> *NSiPM = (TParameter<Int_t>*) f->Get("NSiPM");
         const int nSiPM = (const int) NSiPM->GetVal();
+        cout << "[Debug] Loaded Tree: nentries " << fTree->GetEntries() << endl;
+
+        // Loop over events
+        map<Int_t, Double_t> map_event_t0 = getFirstTimeOfEvents(fTree);
+        cout << "[Debug] Computed T0: nevents " << map_event_t0.size() << endl;
+	    cout << "Firs time event 11 " << map_event_t0[11] << endl;
+	    exit(0);
+        map<Int_t, Double_t> map_event_offset = getRndOffsetPerEvents(map_event_t0, max_shifting);
 
         // Connect branches
         Int_t eventnumber;
@@ -155,13 +165,9 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
             branchName += sipm;
             fTree->SetBranchAddress(branchName, &SiPM[sipm]);
         }
-        // Loop over events
-        map<Int_t, Double_t> map_event_t0 = getFirstTimeOfEvents(fTree);
-	cout << "Firs time event 11 " << map_event_t0[11] << endl;
-	exit(0);
-        map<Int_t, Double_t> map_event_offset = getRndOffsetPerEvents(map_event_t0, max_shifting);
-	Int_t nevents = map_event_t0.size();
-	Int_t ecounter = 0, last_event = -1;
+
+	    Int_t nevents = map_event_t0.size();
+	    Int_t ecounter = 0, last_event = -1;
         vector<vector<Long64_t>> TSiPMEvent = newDatasetEventInstance(nSiPM, nDeltaT);
         for(Int_t i=0; i < fTree->GetEntries(); i++){
 	    fTree->GetEntry(i);
@@ -206,11 +212,11 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
 int main(){
     cout << "[Info] Snapshot Dataset Creator...\n";
     // LGND Docker filesystem
-    const char * dirIn = "/home/data/Ar39Preproc/";
-    const char * dirOut = "/home/data/Ar39Preproc/";
+    // const char * dirIn = "/home/data/Ar39Preproc/";
+    // const char * dirOut = "/home/data/Ar39Preproc/";
     // Local
-    // const char * dirIn = "./";
-    // const char * dirOut = "Out/";
-    produce_time_dataset(dirIn, dirOut, "SiPMTrace_Ar39_", "Ar39_Snapshots_");
+    const char * dirIn = "./";
+    const char * dirOut = "Out/";
+    produce_time_dataset(dirIn, dirOut, "SiPMTrace_Ar39_", "Ar39_Snapshots");
     cout << "[Info] End.\n";
 }

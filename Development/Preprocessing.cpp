@@ -113,7 +113,7 @@ void addBranches(TTree * reducedTree, TH3D * hMap, TH2D * oMap, Int_t event_x_fi
     for (Long64_t i = 0; i < reducedTree->GetEntries(); i++) {
         reducedTree->GetEntry(i);
         Double_t r = sqrt(x*x + y*y);    // Euclidean distance ignoring Z
-	// Use interior/exterior map, based on coordinate
+	    // Use interior/exterior map, based on coordinate
         if (r >= 300){      // WAIT: exterior map is bugged 
             Int_t bin = oMap->FindBin(r, z);
             detectionefficiency = hMap->GetBinContent(bin);
@@ -207,7 +207,7 @@ void compact_data(const char * dirIn, const char * dirOut, TString prefixIn, TSt
     cout << "[Info] Merge data: completed.\n";
 }
 
-void data_preparation(const char * dirIn, const char * dirOut){
+void convert_to_sliced_detections(const char * dirIn, const char * dirOut){
     cout << "[Info] Data preparation...\n";
     double m=0, s=5;        // tuned for 72 sipms
     const int opYield=40;   // 40 ops / KeV
@@ -217,6 +217,8 @@ void data_preparation(const char * dirIn, const char * dirOut){
     char* fullDirOut = gSystem->ExpandPathName(dirOut);
     void* dirp = gSystem->OpenDirectory(fullDirIn);
     const char* entry;
+    set<Int_t> original_events;
+    set<Int_t> produced_events;
     while((entry = (char*)gSystem->GetDirEntry(dirp))) {
         TString fileName = entry;
         if(!isOutFile(entry))   continue;
@@ -261,6 +263,7 @@ void data_preparation(const char * dirIn, const char * dirOut){
 
         for(Long64_t i = 0; i < fTree->GetEntries(); i++){
             fTree->GetEntry(i);
+            original_events.insert(eventnumber);
             double angle = atan2(y, x);
             if(angle < 0)
                 angle += 2 * PI;
@@ -278,11 +281,16 @@ void data_preparation(const char * dirIn, const char * dirOut){
                 else
                     readouts[segment + r]++;
             }
-            if(opDetected > 0)
+            if(opDetected > 0){
                 SiPMTree.Fill();
+                produced_events.insert(eventnumber);
+            }
+
         }
 
         cout << " -> " << fullDirOut << output->GetName() << endl;
+        cout << "Original Events: " << original_events.size() << ", ";
+        cout << "Produced Events: " << produced_events.size() << "\n\n";
         SiPMTree.Write();
         NSiPM->Write();
         output->Close();
@@ -416,7 +424,7 @@ int main(){
     // data_cleaning(dirIn, dirOut, mapDir);
     // compact_data(dirOut, dirOut, TmpROIFilePrefix, OutROIFilePrefix, entry_x_file);
     // Data preparation
-    data_preparation(dirOut, dirOut);
+    convert_to_sliced_detections(dirOut, dirOut);
     //produce_time_dataset(dirOut, dirOut, TmpSiPMFilePrefix, "dataset");
     cout << "[Info] End.\n";
 }
