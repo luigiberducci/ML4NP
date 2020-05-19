@@ -83,9 +83,9 @@ pair<TFile*, TTree*> getReducedTree(const char * dirIn, const char * dirOut, TSt
     output = TFile::Open(dirOut + fileName.Copy().Replace(0, 6, TmpROIFilePrefix), "RECREATE");
     originalTree = (TTree*)file->Get("fTree");
     // cut: ROI & Edep>0
-    TString cutX("(x >= -500.) & (x <= 500.)");
-    TString cutY("(y >= -500.) & (y <= 500.)");
-    TString cutZ("(z >= -1000) & (z <= 1000)");
+    TString cutX("(x >= -700.) & (x <= 700.)");
+    TString cutY("(y >= -700.) & (y <= 700.)");
+    TString cutZ("(z >= -845) & (z <= 845)");
     TString cutE("(energydeposition > 0)");
     // cut original tree
     reducedTree = originalTree->CopyTree(cutX + " & " + cutY + " & " + cutZ);
@@ -289,12 +289,19 @@ void convert_to_sliced_detections(const char * dirIn, const char * dirOut){
             }else{
                 discarded_events.insert(eventnumber);
             }
-
         }
 
         cout << " -> " << fullDirOut << output->GetName() << endl;
         cout << "\tOriginal Events: " << original_events.size() << ",\n";
         cout << "\tProduced Events: " << produced_events.size() << "\n\n";
+        cout << "\tDiscarded Events: " << discarded_events.size() << "\n\n";
+        j=0;
+        cout << "\t\t";
+        for(auto event : discarded_events){
+            if(j>10) break;
+            cout << event << ", ";
+            j++;
+        }
         SiPMTree.Write();
         NSiPM->Write();
         output->Close();
