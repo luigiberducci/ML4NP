@@ -219,6 +219,7 @@ void convert_to_sliced_detections(const char * dirIn, const char * dirOut){
     const char* entry;
     set<Int_t> original_events;
     set<Int_t> produced_events;
+    set<Int_t> discarded_events;
     while((entry = (char*)gSystem->GetDirEntry(dirp))) {
         TString fileName = entry;
         if(!isOutFile(entry))   continue;
@@ -274,6 +275,7 @@ void convert_to_sliced_detections(const char * dirIn, const char * dirOut){
                 readouts[sipm] = 0;
             }
             Long64_t opDetected = ceil(Edep * opYield * deteff);
+            assert(opDetected>=0);
             for(Long64_t op = 0; op < opDetected; op++){
                 int r = round(rnd.Gaus(m, s));
                 if (segment + r < 0)
@@ -284,13 +286,15 @@ void convert_to_sliced_detections(const char * dirIn, const char * dirOut){
             if(opDetected > 0){
                 SiPMTree.Fill();
                 produced_events.insert(eventnumber);
+            }else{
+                discarded_events.insert(eventnumber);
             }
 
         }
 
         cout << " -> " << fullDirOut << output->GetName() << endl;
-        cout << "Original Events: " << original_events.size() << ", ";
-        cout << "Produced Events: " << produced_events.size() << "\n\n";
+        cout << "\tOriginal Events: " << original_events.size() << ",\n";
+        cout << "\tProduced Events: " << produced_events.size() << "\n\n";
         SiPMTree.Write();
         NSiPM->Write();
         output->Close();
