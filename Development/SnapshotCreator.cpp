@@ -53,12 +53,14 @@ bool isOutFile(TString fileName){
     return isRootFile(fileName, prefix);
 }
 
-TString createDatasetFilename(const char * dirOut, TString prefixOut, Double_t nDeltaT, Double_t DeltaTns){
+TString createDatasetFilename(const char * dirOut, TString prefixOut, Double_t nDeltaT, Double_t DeltaTns, Int_t nGroupedEvents){
     char* fullDirOut = gSystem->ExpandPathName(dirOut);
     TString outFileName = fullDirOut + prefixOut + "_T";
     outFileName += nDeltaT * DeltaTns;
     outFileName += "_DT";
     outFileName += DeltaTns;
+    outFileName += "_Grp";
+    outFileName += nGroupedEvents;
     outFileName += ".csv";
     return outFileName;
 }
@@ -112,25 +114,28 @@ TEntryList* getEntryListOfEvent(TTree *fTree, Int_t eventnumber){
 void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefixIn, TString prefixOut){
     // Parameters
     Double_t DeltaT = 4;    	// integration time (ns) - 4ns is Dt of FlashADC
-    Int_t nDeltaT = 2500;     	// number of successive integrations - 2500 integrations of 4ns are 10us
-    nDeltaT = 25;           	// number of successive integrations - 2500 integrations of 4ns are 10us
+    Int_t nDeltaT = 25;     	// number of successive integrations - 25 integrations of 4ns are 100ns
+
     Double_t margin = 5;	    // Margin at the end to avoid partial events -> approx. event length
-    int num_shiftings = 100;	// Number of instances for each event
-    num_shiftings = 2;	// Number of instances for each event
-    int min_shifting = 0;	// Interval shifting (min)
+    int min_shifting = 0;	    // Interval shifting (min)
     int max_shifting = nDeltaT * DeltaT - margin;	// Interval shifting (max)
-    int group_events = 2;	// Number of events to be grouped in the same snapshot
+    int group_events = 2;	    // Number of events to be grouped in the same snapshot
     // Debug
     cout << "[Info] From files " << dirIn << "/" << prefixIn << "*" <<  endl;
     cout << "[Info] Create snapshot of T=" << nDeltaT * DeltaT << " ns, ";
     cout << "dT=" << DeltaT << "\n";
     // IO management
     ofstream outCSV;
-    TString outFile(createDatasetFilename(dirOut, prefixOut, nDeltaT, DeltaT));
+    TString outFile(createDatasetFilename(dirOut, prefixOut, nDeltaT, DeltaT, group_events));
     outCSV.open(outFile);
     cout << "[Info] Writing in " << outFile << "...\n";
     // Write CSV header: number of Dt, Dt in ns, resulting time T
-    outCSV << nDeltaT << "," << DeltaT << "," << nDeltaT * DeltaT << "\n";
+    outCSV << "# N DeltaT: " << nDeltaT << ", ";
+    outCSV << "DeltaT: " << DeltaT << ", ";
+    outCSV << "T: " << nDeltaT * DeltaT << "\n";
+    outCSV << "# Each event is a sequence of NDeltaT rows.";
+    outCSV << "The events are separated by '#'.\n";
+    outCSV << "# Row Format: ID, Slice0, Slice1, ..., SliceN\n";
 
     // Loop files in input directory
     char* fullDirIn = gSystem->ExpandPathName(dirIn);
@@ -149,10 +154,10 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
 
         // Loop over events
         map<Int_t, Double_t> map_event_t0 = getFirstTimeOfEvents(fTree);
-        cout << "[Debug] Computed T0: nevents " << map_event_t0.size() << endl;
-	    cout << "Firs time event 11 " << map_event_t0[11] << endl;
-	    exit(0);
+        cout << "[Debug] Computed T0 for nevents " << map_event_t0.size() << endl;
+
         map<Int_t, Double_t> map_event_offset = getRndOffsetPerEvents(map_event_t0, max_shifting);
+        cout << "[Debug] Computed Rnd Offsets for nevents " << map_event_offset.size() << endl;
 
         // Connect branches
         Int_t eventnumber;
@@ -167,34 +172,38 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
         }
 
 	    Int_t nevents = map_event_t0.size();
-	    Int_t ecounter = 0, last_event = -1;
+	    Int_t ecounter = 0, last_event = -1, prodevents_counter=0;
         vector<vector<Long64_t>> TSiPMEvent = newDatasetEventInstance(nSiPM, nDeltaT);
-        for(Int_t i=0; i < fTree->GetEntries(); i++){
-	    fTree->GetEntry(i);
-            cout << "Event: " << eventnumber << ", Time: " << time << endl;
-	    if(eventnumber != last_event){	// New Event
-	    	last_event = eventnumber;
-		ecounter++;
-	        if(ecounter % group_events == 1){
-		    if(ecounter > 1){
-		        // Write output
-    		        for(auto snapshot : TSiPMEvent){
-			    for(auto sipm : snapshot){
-			        outCSV << sipm << ",";
-			        outCSV << endl;
-			    }
-		        }
-                        outCSV << endl;
+        Long64_t nEntries = fTree->GetEntries();
+        for(Int_t i=0; i < nEntries; i++){
+            if(i % 10000 == 0)
+                cout << "\rentry: " << i << "/" << nEntries << std::flush;
+	        fTree->GetEntry(i);
+	        if(eventnumber != last_event){	// New Event
+	    	    last_event = eventnumber;
+		        ecounter++;
+	            if(ecounter % group_events == 1){
+                    if(ecounter > 1){
+                        prodevents_counter++;   // skip 1, where we only create datastruct
+                        // Write output
+                        for(auto snapshot : TSiPMEvent){
+                            outCSV << prodevents_counter << ",";
+                            for(auto sipm : snapshot){
+                                outCSV << sipm << ",";
+                            }
+                            outCSV << endl;
+                        }
+                        outCSV << "#" << endl;
                     }
-            	    TSiPMEvent = newDatasetEventInstance(nSiPM, nDeltaT);
-		}
-	    }
-	    Double_t shifted_time = time - map_event_t0[eventnumber] + map_event_offset[eventnumber];
+                    TSiPMEvent = newDatasetEventInstance(nSiPM, nDeltaT);
+		        }
+	        }
+	        Double_t shifted_time = time - map_event_t0[eventnumber] + map_event_offset[eventnumber];
             int id_time_bin = floor((shifted_time) / DeltaT);
             if(id_time_bin < 0 || id_time_bin >= nDeltaT){
-	        cout << "[Info] Skipped entry out-of-time. Entry: " << i << ", Event: " << eventnumber << endl; 
+	            cout << "[Info] Skipped entry out-of-time. Entry: " << i << ", Event: " << eventnumber << endl;
                 continue;   // all the others are bigger than time T (eventually overflow)
-	    }
+	        }
             // Integrate in the time bin
             for(int sipm = 0; sipm < nSiPM; sipm++){
             	TSiPMEvent[id_time_bin][sipm] += SiPM[sipm];
@@ -204,8 +213,8 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
         fTree->Delete();
         f->Close();
         f->Delete();
+        cout << "[Info] Produced snapshots: " << prodevents_counter << "\n";
     }
-    cout << "\tWritten in file " << outFile << endl;
     gSystem->FreeDirectory(dirp);
 }
 
@@ -215,7 +224,7 @@ int main(){
     // const char * dirIn = "/home/data/Ar39Preproc/";
     // const char * dirOut = "/home/data/Ar39Preproc/";
     // Local
-    const char * dirIn = "./";
+    const char * dirIn = "../Data/ar39/";
     const char * dirOut = "Out/";
     produce_time_dataset(dirIn, dirOut, "SiPMTrace_Ar39_", "Ar39_Snapshots");
     cout << "[Info] End.\n";
