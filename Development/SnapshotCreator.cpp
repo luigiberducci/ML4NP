@@ -16,9 +16,11 @@
 #include <set>
 #include <assert.h>
 
+// Params
+#define RNDSEED 123456789
 #define PI 3.14159265
 #define INF 999999999999999999999999999999999999999999999
-
+// Filename prefixes
 #define CJSimFilePrefix "output"
 #define TmpROIFilePrefix "tmproi"
 #define OutROIFilePrefix "roi"
@@ -61,6 +63,8 @@ TString createDatasetFilename(const char * dirOut, TString prefixOut, Double_t n
     outFileName += DeltaTns;
     outFileName += "_Grp";
     outFileName += nGroupedEvents;
+    outFileName += "_Seed";
+    outFileName += RNDSEED;
     outFileName += ".csv";
     return outFileName;
 }
@@ -85,7 +89,7 @@ map<Int_t, Double_t> getFirstTimeOfEvents(TTree *fTree){
 
 map<Int_t, Double_t> getRndOffsetPerEvents(map<Int_t, Double_t> map_event_t0, Double_t max_offset){
     map<Int_t, Double_t> map_event_offset;
-    TRandom rnd = TRandom();
+    TRandom rnd = TRandom(RNDSEED);
     for(auto event_t0 : map_event_t0){
 	Double_t offset = rnd.Uniform(max_offset);    // unif. rnd [0, maxoffset]
         map_event_offset[event_t0.first] = offset;
@@ -113,13 +117,12 @@ TEntryList* getEntryListOfEvent(TTree *fTree, Int_t eventnumber){
 
 void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefixIn, TString prefixOut){
     // Parameters
-    Double_t DeltaT = 4;    	// integration time (ns) - 4ns is Dt of FlashADC
-    Int_t nDeltaT = 25;     	// number of successive integrations - 25 integrations of 4ns are 100ns
-
-    Double_t margin = 5;	    // Margin at the end to avoid partial events -> approx. event length
-    int min_shifting = 0;	    // Interval shifting (min)
-    int max_shifting = nDeltaT * DeltaT - margin;	// Interval shifting (max)
-    int group_events = 4;	    // Number of events to be grouped in the same snapshot
+    const Double_t DeltaT = 4;    	// integration time (ns) - 4ns is Dt of FlashADC
+    const Int_t nDeltaT = 25;     	// number of successive integrations - 25 integrations of 4ns are 100ns
+    const Double_t margin = 5;	    // Margin at the end to avoid partial events -> approx. event length
+    const int min_shifting = 0;	    // Interval shifting (min)
+    const int max_shifting = nDeltaT * DeltaT - margin;	// Interval shifting (max)
+    const int group_events = 1;	    // Number of events to be grouped in the same snapshot
     // Debug
     cout << "[Info] From files " << dirIn << "/" << prefixIn << "*" <<  endl;
     cout << "[Info] Create snapshot of T=" << nDeltaT * DeltaT << " ns, ";
@@ -161,8 +164,9 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
 
         // Connect branches
         Int_t eventnumber;
-        Double_t time;
+        Double_t time, energydeposition;
         fTree->SetBranchAddress("eventnumber", &eventnumber);
+        fTree->SetBranchAddress("energydeposition", &energydeposition);
         fTree->SetBranchAddress("time", &time);
         vector<Long64_t> SiPM(nSiPM);
         for(int sipm = 0; sipm < nSiPM; sipm++){
@@ -173,7 +177,12 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
 
 	    Int_t nevents = map_event_t0.size();
 	    Int_t ecounter = 0, last_event = -1, prodevents_counter=0;
+	    // Create data struct
         vector<vector<Long64_t>> TSiPMEvent = newDatasetEventInstance(nSiPM, nDeltaT);
+        array<Double_t, nDeltaT> EDepositedInDt = {0};     // cumulative Edep in Lar, over each Dt
+        array<Int_t, nDeltaT> PEDetectedInDt = {0};        // cumulative Nr of PE detected, over each Dt
+        vector<Int_t> TSiPMEvent_events;
+        vector<Double_t> TSiPMEvent_offsets;
         Long64_t nEntries = fTree->GetEntries();
         for(Int_t i=0; i < nEntries; i++){
             if(i % 10000 == 0)
@@ -182,21 +191,38 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
 	        if(eventnumber != last_event){	// New Event
 	    	    last_event = eventnumber;
 		        ecounter++;
-	            if(ecounter % group_events == 1){
-                    if(ecounter > 1){
+
+		        // Note: we have to check group_event==1 every time
+	            if((ecounter % group_events == 1) || (group_events == 1)){
+                    if((ecounter > 1) || (group_events == 1)){
                         prodevents_counter++;   // skip 1, where we only create datastruct
                         // Write output
-                        for(auto snapshot : TSiPMEvent){
+                        outCSV << "# Grouped Events: ";
+                        for(auto event_id : TSiPMEvent_events)
+                            outCSV << event_id << ",";
+                        outCSV << " Event Offsets: ";
+                        for(auto offset : TSiPMEvent_offsets)
+                            outCSV << offset << ",";
+                        outCSV << endl;
+                        for(int iDt=0; iDt < TSiPMEvent.size(); iDt++){
+                            auto snapshot = TSiPMEvent[iDt];
                             outCSV << prodevents_counter << ",";
+                            outCSV << EDepositedInDt[iDt] << ",";
+                            outCSV << PEDetectedInDt[iDt] << ",";
                             for(auto sipm : snapshot){
                                 outCSV << sipm << ",";
                             }
                             outCSV << endl;
                         }
-                        outCSV << "#" << endl;
                     }
                     TSiPMEvent = newDatasetEventInstance(nSiPM, nDeltaT);
+                    TSiPMEvent_events.clear();
+                    TSiPMEvent_offsets.clear();
+                    PEDetectedInDt.fill(0);
+                    EDepositedInDt.fill(0);
 		        }
+                TSiPMEvent_events.push_back(eventnumber);
+                TSiPMEvent_offsets.push_back(map_event_offset[eventnumber]);
 	        }
 	        Double_t shifted_time = time - map_event_t0[eventnumber] + map_event_offset[eventnumber];
             int id_time_bin = floor((shifted_time) / DeltaT);
@@ -207,7 +233,9 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
             // Integrate in the time bin
             for(int sipm = 0; sipm < nSiPM; sipm++){
             	TSiPMEvent[id_time_bin][sipm] += SiPM[sipm];
+                PEDetectedInDt[id_time_bin] += SiPM[sipm];
             }
+            EDepositedInDt[id_time_bin] += energydeposition;
         }
         // Close file and tree
         fTree->Delete();
