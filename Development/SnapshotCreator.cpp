@@ -119,7 +119,7 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
     Double_t margin = 5;	    // Margin at the end to avoid partial events -> approx. event length
     int min_shifting = 0;	    // Interval shifting (min)
     int max_shifting = nDeltaT * DeltaT - margin;	// Interval shifting (max)
-    int group_events = 2;	    // Number of events to be grouped in the same snapshot
+    int group_events = 4;	    // Number of events to be grouped in the same snapshot
     // Debug
     cout << "[Info] From files " << dirIn << "/" << prefixIn << "*" <<  endl;
     cout << "[Info] Create snapshot of T=" << nDeltaT * DeltaT << " ns, ";
