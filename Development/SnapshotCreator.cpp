@@ -55,7 +55,8 @@ bool isOutFile(TString fileName){
     return isRootFile(fileName, prefix);
 }
 
-TString createDatasetFilename(const char * dirOut, TString prefixOut, Double_t nDeltaT, Double_t DeltaTns, Int_t nGroupedEvents){
+TString createDatasetFilename(const char * dirOut, TString prefixOut, Double_t nDeltaT, Double_t DeltaTns,
+                              Int_t nGroupedEvents, Int_t filePartID){
     char* fullDirOut = gSystem->ExpandPathName(dirOut);
     TString outFileName = fullDirOut + prefixOut + "_T";
     outFileName += nDeltaT * DeltaTns;
@@ -65,6 +66,8 @@ TString createDatasetFilename(const char * dirOut, TString prefixOut, Double_t n
     outFileName += nGroupedEvents;
     outFileName += "_Seed";
     outFileName += RNDSEED;
+    outFileName += "_Part";
+    outFileName += filePartID;
     outFileName += ".csv";
     return outFileName;
 }
@@ -115,6 +118,47 @@ TEntryList* getEntryListOfEvent(TTree *fTree, Int_t eventnumber){
     return elist;
 }
 
+void write_header(ofstream& outCSV, Int_t nDeltaT, Double_t DeltaT, Int_t filePartID, Int_t nSlices){
+    // Write CSV header: number of Dt, Dt in ns, resulting time T
+    outCSV << "# File Part: " << filePartID << ", ";
+    outCSV << "# N DeltaT: " << nDeltaT << ", ";
+    outCSV << "DeltaT: " << DeltaT << ", ";
+    outCSV << "T: " << nDeltaT * DeltaT << "\n";
+    outCSV << "# Each event is a sequence of NDeltaT rows.";
+    outCSV << "The events are separated by '#'.\n";
+    outCSV << "# Row Format: ID, Slice0, Slice1, ..., SliceN\n";
+    outCSV << "#\n# Columns:\n";
+    outCSV << "eventnumber,energydeposition,pedetected,";
+    for(Int_t i=0; i < nSlices; i++){
+        outCSV << "slice" << i << ",";
+    }
+    outCSV << "\n";
+}
+
+template<size_t NDt>
+void write_produced_event_in_outfile(ofstream& outCSV, Int_t prodEventID, vector<vector<Long64_t>> TSiPMEvent,
+                                     vector<Int_t> TSiPMEvent_events, vector<Double_t> TSiPMEvent_offsets,
+                                     array<Int_t, NDt> PEDetectedInDt, array<Double_t, NDt> EDepositedInDt){
+    // Write output
+    outCSV << "# Grouped Events: ";
+    for(auto event_id : TSiPMEvent_events)
+        outCSV << event_id << ",";
+    outCSV << " Event Offsets: ";
+    for(auto offset : TSiPMEvent_offsets)
+        outCSV << offset << ",";
+    outCSV << endl;
+    for(int iDt=0; iDt < TSiPMEvent.size(); iDt++){
+        auto snapshot = TSiPMEvent[iDt];
+        outCSV << prodEventID << ",";
+        outCSV << EDepositedInDt[iDt] << ",";
+        outCSV << PEDetectedInDt[iDt] << ",";
+        for(auto sipm : snapshot){
+            outCSV << sipm << ",";
+        }
+        outCSV << endl;
+    }
+}
+
 void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefixIn, TString prefixOut){
     // Parameters
     const Double_t DeltaT = 4;    	// integration time (ns) - 4ns is Dt of FlashADC
@@ -123,22 +167,14 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
     const int min_shifting = 0;	    // Interval shifting (min)
     const int max_shifting = nDeltaT * DeltaT - margin;	// Interval shifting (max)
     const int group_events = 1;	    // Number of events to be grouped in the same snapshot
+    const int max_event_x_file = 100000;  // Max number of output events (snapshots) per file
     // Debug
     cout << "[Info] From files " << dirIn << "/" << prefixIn << "*" <<  endl;
     cout << "[Info] Create snapshot of T=" << nDeltaT * DeltaT << " ns, ";
     cout << "dT=" << DeltaT << "\n";
     // IO management
     ofstream outCSV;
-    TString outFile(createDatasetFilename(dirOut, prefixOut, nDeltaT, DeltaT, group_events));
-    outCSV.open(outFile);
-    cout << "[Info] Writing in " << outFile << "...\n";
-    // Write CSV header: number of Dt, Dt in ns, resulting time T
-    outCSV << "# N DeltaT: " << nDeltaT << ", ";
-    outCSV << "DeltaT: " << DeltaT << ", ";
-    outCSV << "T: " << nDeltaT * DeltaT << "\n";
-    outCSV << "# Each event is a sequence of NDeltaT rows.";
-    outCSV << "The events are separated by '#'.\n";
-    outCSV << "# Row Format: ID, Slice0, Slice1, ..., SliceN\n";
+    Int_t file_part_id = 0;
 
     // Loop files in input directory
     char* fullDirIn = gSystem->ExpandPathName(dirIn);
@@ -155,10 +191,9 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
         const int nSiPM = (const int) NSiPM->GetVal();
         cout << "[Debug] Loaded Tree: nentries " << fTree->GetEntries() << endl;
 
-        // Loop over events
+        // Compute time of first deposit in lar, and random offset for event-shifting
         map<Int_t, Double_t> map_event_t0 = getFirstTimeOfEvents(fTree);
         cout << "[Debug] Computed T0 for nevents " << map_event_t0.size() << endl;
-
         map<Int_t, Double_t> map_event_offset = getRndOffsetPerEvents(map_event_t0, max_shifting);
         cout << "[Debug] Computed Rnd Offsets for nevents " << map_event_offset.size() << endl;
 
@@ -185,35 +220,24 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
         vector<Double_t> TSiPMEvent_offsets;
         Long64_t nEntries = fTree->GetEntries();
         for(Int_t i=0; i < nEntries; i++){
-            if(i % 10000 == 0)
-                cout << "\rentry: " << i << "/" << nEntries << std::flush;
 	        fTree->GetEntry(i);
 	        if(eventnumber != last_event){	// New Event
 	    	    last_event = eventnumber;
 		        ecounter++;
-
 		        // Note: we have to check group_event==1 every time
 	            if((ecounter % group_events == 1) || (group_events == 1)){
                     if((ecounter > 1) || (group_events == 1)){
                         prodevents_counter++;   // skip 1, where we only create datastruct
-                        // Write output
-                        outCSV << "# Grouped Events: ";
-                        for(auto event_id : TSiPMEvent_events)
-                            outCSV << event_id << ",";
-                        outCSV << " Event Offsets: ";
-                        for(auto offset : TSiPMEvent_offsets)
-                            outCSV << offset << ",";
-                        outCSV << endl;
-                        for(int iDt=0; iDt < TSiPMEvent.size(); iDt++){
-                            auto snapshot = TSiPMEvent[iDt];
-                            outCSV << prodevents_counter << ",";
-                            outCSV << EDepositedInDt[iDt] << ",";
-                            outCSV << PEDetectedInDt[iDt] << ",";
-                            for(auto sipm : snapshot){
-                                outCSV << sipm << ",";
-                            }
-                            outCSV << endl;
+                        if (prodevents_counter  % max_event_x_file == 1) {
+                            outCSV.close();
+                            file_part_id++; // Increment the id of file part (part1, part2, ..)
+                            TString outFile(createDatasetFilename(dirOut, prefixOut, nDeltaT, DeltaT, group_events, file_part_id));
+                            outCSV.open(outFile);
+                            write_header(outCSV, nDeltaT, DeltaT, file_part_id, nSiPM);
+                            cout << "[Info] Event " << prodevents_counter << " - Writing in " << outFile << "...\n";
                         }
+                        write_produced_event_in_outfile(outCSV, prodevents_counter, TSiPMEvent, TSiPMEvent_events,
+                                                        TSiPMEvent_offsets, PEDetectedInDt, EDepositedInDt);
                     }
                     TSiPMEvent = newDatasetEventInstance(nSiPM, nDeltaT);
                     TSiPMEvent_events.clear();
@@ -224,6 +248,9 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
                 TSiPMEvent_events.push_back(eventnumber);
                 TSiPMEvent_offsets.push_back(map_event_offset[eventnumber]);
 	        }
+	        // Debug
+            if(i % 10000 == 0)
+                cout << "\rentry: " << i << "/" << nEntries << std::flush;
 	        Double_t shifted_time = time - map_event_t0[eventnumber] + map_event_offset[eventnumber];
             int id_time_bin = floor((shifted_time) / DeltaT);
             if(id_time_bin < 0 || id_time_bin >= nDeltaT){
