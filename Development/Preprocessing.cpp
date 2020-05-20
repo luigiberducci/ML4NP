@@ -114,9 +114,9 @@ void addBranches(TTree * reducedTree, TH3D * hMap, TH2D * oMap, Int_t event_x_fi
     for (Long64_t i = 0; i < reducedTree->GetEntries(); i++) {
         reducedTree->GetEntry(i);
         Double_t r = sqrt(x*x + y*y);    // Euclidean distance ignoring Z
-	    // Use interior/exterior map, based on coordinate
-        if (r >= 300){      // WAIT: exterior map is bugged 
-            Int_t bin = oMap->FindBin(r, z);
+	// Use interior/exterior map, based on coordinate
+        if (r >= 300){
+            Int_t bin = hMap->FindBin(x, y, z);
             detectionefficiency = hMap->GetBinContent(bin);
         }else{
             Int_t bin = hMap->FindBin(x, y, z);
@@ -218,7 +218,7 @@ TString createDatasetFilename(const char * dirOut, TString prefixOut, Int_t nSli
     outFileName += RNDSEED;
     outFileName += "_Part";
     outFileName += filePartID;
-    outFileName += ".csv";
+    outFileName += ".root";
     return outFileName;
 }
 
@@ -255,7 +255,7 @@ void convert_to_sliced_detections(const char * dirIn, const char * dirOut){
         fTree->SetBranchAddress("energydeposition", &Edep);
         fTree->SetBranchAddress("detectionefficiency", &deteff);
 
-        TString outFilepath(createDatasetFilename(dirOut, TmpSiPMFilePrefix, nSiPM, opYield, filePartID))
+        TString outFilepath(createDatasetFilename(dirOut, TmpSiPMFilePrefix, nSiPM, opYield, filePartID));
         TFile *output = TFile::Open(outFilepath, "RECREATE");
         TTree SiPMTree("fTree", "");
         TParameter<Int_t> *NSiPM = new TParameter<Int_t>("NSiPM", nSiPM);
@@ -302,18 +302,11 @@ void convert_to_sliced_detections(const char * dirIn, const char * dirOut){
                 discarded_events.insert(eventnumber);
             }
         }
-
+	// Debug
         cout << " -> " << fullDirOut << output->GetName() << endl;
         cout << "\tOriginal Events: " << original_events.size() << ",\n";
         cout << "\tProduced Events: " << produced_events.size() << "\n\n";
-        cout << "\tDiscarded Events: " << discarded_events.size() << "\n\n";
-        j=0;
-        cout << "\t\t";
-        for(auto event : discarded_events){
-            if(j>10) break;
-            cout << event << ", ";
-            j++;
-        }
+        // Write output
         SiPMTree.Write();
         NSiPM->Write();
         output->Close();
@@ -339,15 +332,15 @@ int main(){
     // Data cleaning
     const char * dirIn = "/home/data/Muons/";
     const char * dirOut = "/home/data/MuonsPreproc/";
-    const char * mapDir = "/home/data/";
+    const char * mapDir = "/home/data/OpticalMaps/";
     // Local
     // const char * dirIn = "Data/";
     // const char * dirOut = "Out/";
     // const char * mapDir = "../Data/root/";
     // Data cleaning
     Long64_t entry_x_file = 3000000;	//Compact root files to have this number of entries
-    // data_cleaning(dirIn, dirOut, mapDir);
-    // compact_data(dirOut, dirOut, TmpROIFilePrefix, OutROIFilePrefix, entry_x_file);
+    data_cleaning(dirIn, dirOut, mapDir);
+    compact_data(dirOut, dirOut, TmpROIFilePrefix, OutROIFilePrefix, entry_x_file);
     // Data preparation
     convert_to_sliced_detections(dirOut, dirOut);
     cout << "[Info] End.\n";
