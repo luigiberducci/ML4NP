@@ -16,12 +16,13 @@
 #include <set>
 #include <assert.h>
 
+#define RNDSEED 123456789
 #define PI 3.14159265
 
 #define CJSimFilePrefix "output"
 #define TmpROIFilePrefix "tmproi"
 #define OutROIFilePrefix "roi"
-#define TmpSiPMFilePrefix "tmpsipm"
+#define TmpSiPMFilePrefix "SlicedDeposits"
 #define SiPMFilePrefix "SiPM_"
 
 using namespace std;
@@ -123,7 +124,7 @@ void addBranches(TTree * reducedTree, TH3D * hMap, TH2D * oMap, Int_t event_x_fi
         }
         increment_eventnumber = file_number * event_x_file + eventnumber;
         bDEff->Fill();
-        bIncENumber->Fill();	// for ar39 event number overlaps
+        bIncENumber->Fill();
     }
 }
 
@@ -140,7 +141,7 @@ void data_cleaning(const char * dirIn, const char * dirOut, const char * mapDir)
 
     void* dirp = gSystem->OpenDirectory(fullDirIn);
     const char* entry;
-    Int_t event_x_file = 10000, ar39_file_counter = 0;	// to solve the repeatition of event number of ar39 sims
+    Int_t event_x_file = 10000, input_file_counter = 0;	// to solve the repeatition of event number in input files
     while((entry = (char*)gSystem->GetDirEntry(dirp))) {
         TString fileName = entry;
         if(!isSimulationFile(fileName))    continue;
@@ -149,14 +150,14 @@ void data_cleaning(const char * dirIn, const char * dirOut, const char * mapDir)
         pair<TFile*, TTree*> file_tree_pair = getReducedTree(fullDirIn, fullDirOut, fileName);
         TFile * output = file_tree_pair.first;
         TTree * reducedTree = file_tree_pair.second;
-        addBranches(reducedTree, hMap, oMap, event_x_file, ar39_file_counter);
+        addBranches(reducedTree, hMap, oMap, event_x_file, input_file_counter);
         
         cout << " -> " << fullDirOut << output->GetName() << endl;
         reducedTree->Write();
         reducedTree->Delete();
         output->Close();
         output->Delete();
-	ar39_file_counter++;	// increment file counter to avoid future events' overlaps
+	input_file_counter++;	// increment file counter to avoid future events' overlaps
     }
     hMap->Delete();
     mapFile->Close();
@@ -207,6 +208,20 @@ void compact_data(const char * dirIn, const char * dirOut, TString prefixIn, TSt
     cout << "[Info] Merge data: completed.\n";
 }
 
+TString createDatasetFilename(const char * dirOut, TString prefixOut, Int_t nSlices, Double_t opYield, Int_t filePartID){
+    char* fullDirOut = gSystem->ExpandPathName(dirOut);
+    TString outFileName = fullDirOut + prefixOut + "_Slices";
+    outFileName += nSlices;
+    outFileName += "_Yield";
+    outFileName += opYield;
+    outFileName += "_Seed";
+    outFileName += RNDSEED;
+    outFileName += "_Part";
+    outFileName += filePartID;
+    outFileName += ".csv";
+    return outFileName;
+}
+
 void convert_to_sliced_detections(const char * dirIn, const char * dirOut){
     cout << "[Info] Data preparation...\n";
     double m=0, s=5;        // tuned for 72 sipms
@@ -220,6 +235,7 @@ void convert_to_sliced_detections(const char * dirIn, const char * dirOut){
     set<Int_t> original_events;
     set<Int_t> produced_events;
     set<Int_t> discarded_events;
+    Int_t filePartID = 0;
     while((entry = (char*)gSystem->GetDirEntry(dirp))) {
         TString fileName = entry;
         if(!isOutFile(entry))   continue;
@@ -235,16 +251,12 @@ void convert_to_sliced_detections(const char * dirIn, const char * dirOut){
         fTree->SetBranchAddress("y", &y);
         fTree->SetBranchAddress("z", &z);
         fTree->SetBranchAddress("time", &time);
-        fTree->SetBranchAddress("inc_eventnumber", &eventnumber);	//TODO:inc_event for ar39
+        fTree->SetBranchAddress("inc_eventnumber", &eventnumber);    // To avoid overlap of events
         fTree->SetBranchAddress("energydeposition", &Edep);
         fTree->SetBranchAddress("detectionefficiency", &deteff);
 
-        TString SiPMFilePrefixString = TmpSiPMFilePrefix;
-        SiPMFilePrefixString += nSiPM;
-        SiPMFilePrefixString += "SiPMs_";
-        SiPMFilePrefixString += opYield;
-        SiPMFilePrefixString += "Yield";
-        TFile *output = TFile::Open(dirOut + fileName.Copy().Replace(0, 3, SiPMFilePrefixString), "RECREATE");
+        TString outFilepath(createDatasetFilename(dirOut, TmpSiPMFilePrefix, nSiPM, opYield, filePartID))
+        TFile *output = TFile::Open(outFilepath, "RECREATE");
         TTree SiPMTree("fTree", "");
         TParameter<Int_t> *NSiPM = new TParameter<Int_t>("NSiPM", nSiPM);
         TBranch *bN = SiPMTree.Branch("eventnumber", &eventnumber, "eventnumber/I");
@@ -270,7 +282,7 @@ void convert_to_sliced_detections(const char * dirIn, const char * dirOut){
                 angle += 2 * PI;
             int segment = angle / thetaSegment;
             assert((segment >= 0) & (segment <nSiPM));
-            TRandom rnd = TRandom();
+            TRandom rnd = TRandom(RNDSEED);
             for(int sipm = 0; sipm < nSiPM; sipm++){
                 readouts[sipm] = 0;
             }
@@ -310,16 +322,6 @@ void convert_to_sliced_detections(const char * dirIn, const char * dirOut){
     cout << "[Info] Data preparation: completed.\n";
 }
 
-TString createDatasetOutFile(const char * dirOut, TString prefixOut, Double_t nDeltaT, Double_t DeltaTns){
-    char* fullDirOut = gSystem->ExpandPathName(dirOut);
-    TString outFileName = fullDirOut + prefixOut + "_T";
-    outFileName += nDeltaT * DeltaTns;
-    outFileName += "_DT";
-    outFileName += DeltaTns;
-    outFileName += ".csv";
-    return outFileName;
-}
-
 set<Int_t> getSetOfEventNumbers(TTree *fTree){
     Int_t eventnumber;
     fTree->SetBranchAddress("eventnumber", &eventnumber);
@@ -332,99 +334,11 @@ set<Int_t> getSetOfEventNumbers(TTree *fTree){
     return eventnumbers;
 }
 
-vector<vector<Long64_t>> newDatasetEventInstance(Int_t nSiPM, Int_t nDeltaT){
-    vector<vector<Long64_t>> TSiPMEvent;
-    for(int dt = 0; dt < nDeltaT; dt++){
-        vector<Long64_t> dTSiPMSnapshot(nSiPM);
-        TSiPMEvent.push_back(dTSiPMSnapshot);
-    }
-    return TSiPMEvent;
-}
-
-TEntryList* getEntryListOfEvent(TTree *fTree, Int_t eventnumber){
-    // Select entries of event
-    TString selection = "eventnumber==";
-    selection += eventnumber;
-    fTree->Draw(">>entries", selection, "entrylist");
-    TEntryList *elist = (TEntryList*)gDirectory->Get("entries");
-    return elist;
-}
-
-void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefixIn, TString prefixOut){
-    Double_t DeltaTns = 2, shift = 0;    // T, dT in ns
-    Int_t nDeltaT = 40;     // number of Dt for each event
-    cout << "[Info] Create dataset wt T=" << nDeltaT * DeltaTns << ", dT=" << DeltaTns << "...\n";
-    char* fullDirIn = gSystem->ExpandPathName(dirIn);
-    // Create output file stream
-    ofstream outCSV;
-    TString outFile(createDatasetOutFile(dirOut, prefixOut, nDeltaT, DeltaTns));
-    outCSV.open(outFile);
-    // Write CSV header: number of Dt, Dt in ns, resulting time T
-    outCSV << nDeltaT << "," << DeltaTns << "," << nDeltaT * DeltaTns << "\n";
-    // Loop files in input directory
-    void* dirp = gSystem->OpenDirectory(fullDirIn);
-    const char* entry;
-    while((entry = (char*)gSystem->GetDirEntry(dirp))) {
-        TString fileName = entry;
-        if(!isRootFile(fileName, prefixIn))   continue;
-        cout << "\t" << fullDirIn + fileName << endl;
-        // Open file, get tree and number of sipm
-        TFile *f = TFile::Open(fullDirIn + fileName);
-        TTree *fTree = (TTree*) f->Get("fTree");
-        TParameter<Int_t> *NSiPM = (TParameter<Int_t>*) f->Get("NSiPM");
-        const int nSiPM = (const int) NSiPM->GetVal();
-        // Collect distinct event numbers
-        set<Int_t> eventnumbers = getSetOfEventNumbers(fTree);
-        // Connect branches
-        Int_t eventnumber;
-        Double_t time;
-        fTree->SetBranchAddress("eventnumber", &eventnumber);
-        fTree->SetBranchAddress("time", &time);
-        vector<Long64_t> SiPM(nSiPM);
-        for(int sipm = 0; sipm < nSiPM; sipm++){
-            TString branchName = "SiPM";
-            branchName += sipm;
-            fTree->SetBranchAddress(branchName, &SiPM[sipm]);
-        }
-        // Loop over events
-        for(auto event : eventnumbers){
-            // Create dataset instance struct
-            vector<vector<Long64_t>> TSiPMEvent = newDatasetEventInstance(nSiPM, nDeltaT);
-            // Loop over event entries
-            TEntryList *elist = getEntryListOfEvent(fTree, event);
-            Long64_t eventEntry;
-            while((eventEntry = elist->Next()) >= 0){   // when list ends -1
-                fTree->GetEntry(eventEntry);
-                int idDTSnapshot = floor((time + shift) / DeltaTns);
-                if(idDTSnapshot < 0 || idDTSnapshot >= nDeltaT)
-                    continue;   // all the others are bigger than time T (eventually overflow)
-                // Integrate according to Dt
-                for(int sipm = 0; sipm < nSiPM; sipm++){
-                    TSiPMEvent[idDTSnapshot][sipm] += SiPM[sipm];
-                }
-            }
-            // Write the event to the out csv file
-            for(auto snapshot : TSiPMEvent){
-                for(auto sipm : snapshot)
-                    outCSV << sipm << ",";
-                outCSV << endl;
-            }
-            outCSV << endl;
-        }
-        // Close file and tree
-        fTree->Delete();
-        f->Close();
-        f->Delete();
-    }
-    cout << "\tWritten in file " << outFile << endl;
-    gSystem->FreeDirectory(dirp);
-}
-
 int main(){
     cout << "[Info] Preprocessing...\n";
     // Data cleaning
-    const char * dirIn = "/home/data/Ar39/";
-    const char * dirOut = "/home/data/Ar39Preproc/";
+    const char * dirIn = "/home/data/Muons/";
+    const char * dirOut = "/home/data/MuonsPreproc/";
     const char * mapDir = "/home/data/";
     // Local
     // const char * dirIn = "Data/";
@@ -436,6 +350,5 @@ int main(){
     // compact_data(dirOut, dirOut, TmpROIFilePrefix, OutROIFilePrefix, entry_x_file);
     // Data preparation
     convert_to_sliced_detections(dirOut, dirOut);
-    //produce_time_dataset(dirOut, dirOut, TmpSiPMFilePrefix, "dataset");
     cout << "[Info] End.\n";
 }
