@@ -166,12 +166,13 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
     const Double_t margin = 5;	    // Margin at the end to avoid partial events -> approx. event length
     const int min_shifting = 0;	    // Interval shifting (min)
     const int max_shifting = nDeltaT * DeltaT - margin;	// Interval shifting (max)
-    const int group_events = 1;	    // Number of events to be grouped in the same snapshot
+    const int group_events = 3;	    // Number of events to be grouped in the same snapshot
     const int max_event_x_file = 100000;  // Max number of output events (snapshots) per file
     // Debug
     cout << "[Info] From files " << dirIn << "/" << prefixIn << "*" <<  endl;
     cout << "[Info] Create snapshot of T=" << nDeltaT * DeltaT << " ns, ";
-    cout << "dT=" << DeltaT << "\n";
+    cout << "dT=" << DeltaT << "ns, ";
+    cout << "grouping " << group_events << " events\n";
     // IO management
     ofstream outCSV;
     Int_t file_part_id = 0;
