@@ -43,8 +43,8 @@ void output_to_csv(TString inFilepath){
     TTreeReaderValue<Double_t> detectionefficiency(theReader, "detectionefficiency");
     TTreeReaderValue<Int_t> eventnumber(theReader, "inc_eventnumber");
     TTreeReaderValue<Int_t> tracknumber(theReader, "tracknumber");
-    //TTreeReaderValue<string> creatorprocess(theReader, "creatorprocess");
-    TTreeReaderValue<string> creatorprocess(theReader, "process");
+    TTreeReaderValue<string> creatorprocess(theReader, "creatorprocess");
+    // TTreeReaderValue<string> creatorprocess(theReader, "process");
     TTreeReaderValue<Int_t> parentnucleusPID(theReader, "parentnucleusPID");
 
     // Loop over entries
@@ -55,11 +55,11 @@ void output_to_csv(TString inFilepath){
     while(theReader.Next()){
         Int_t cur_event = *eventnumber;
         // Check if we have a new event and reached the max num in curr file
-	    if(i % maxNumberEntriesInFile == 0){
+	if(i % maxNumberEntriesInFile == 0){
             outFileNumber += 1;
             std::cout << "[Info] Creating " << outFileBase + "_part" + outFileNumber + ".csv" << endl;
             if(i > 0)    out.close();
-	        out.open(outFileBase + "_part" + outFileNumber + ".csv");
+	    out.open(outFileBase + "_part" + outFileNumber + ".csv");
             //Print header
             out << "PID,ParentTrackID,energydeposition,kineticenergy,time,x,y,z,";
             out << "px,py,pz,eventnumber,tracknumber,creatorprocess,parentnucleusPID,detectionefficiency";
