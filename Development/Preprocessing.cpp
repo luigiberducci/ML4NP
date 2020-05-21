@@ -23,7 +23,6 @@
 #define TmpROIFilePrefix "tmproi"
 #define OutROIFilePrefix "roi"
 #define TmpSiPMFilePrefix "SlicedDeposits"
-#define SiPMFilePrefix "SiPM_"
 
 using namespace std;
 
@@ -169,6 +168,8 @@ void data_cleaning(const char * dirIn, const char * dirOut, const char * mapDir)
 void mergeChain(TChain* ch, TString dirOut, TString prefix, int id_group){
     TString fileOut(dirOut);
     fileOut += prefix;
+    fileOut += "_RndSeed";
+    fileOut += RNDSEED;
     fileOut += "_part";
     fileOut += id_group;
     fileOut += ".root";
@@ -254,7 +255,9 @@ void convert_to_sliced_detections(const char * dirIn, const char * dirOut){
         fTree->SetBranchAddress("inc_eventnumber", &eventnumber);    // To avoid overlap of events
         fTree->SetBranchAddress("energydeposition", &Edep);
         fTree->SetBranchAddress("detectionefficiency", &deteff);
-
+	
+	// Create new output file
+	filePartID++;
         TString outFilepath(createDatasetFilename(dirOut, TmpSiPMFilePrefix, nSiPM, opYield, filePartID));
         TFile *output = TFile::Open(outFilepath, "RECREATE");
         TTree SiPMTree("fTree", "");
@@ -334,11 +337,11 @@ int main(){
     const char * dirOut = "/home/data/MuonsPreproc/";
     const char * mapDir = "/home/data/OpticalMaps/";
     // Local
-    // const char * dirIn = "Data/";
-    // const char * dirOut = "Out/";
-    // const char * mapDir = "../Data/root/";
+    // const char * dirIn = "../Data/muons/MuonsROI/";
+    // const char * dirOut = "../Data/muons/MuonsROI/";
+    // const char * mapDir = "../Data/OpticalMaps/";
     // Data cleaning
-    Long64_t entry_x_file = 3000000;	//Compact root files to have this number of entries
+    Long64_t entry_x_file = 20000000;	//Compact root files to have this number of entries
     data_cleaning(dirIn, dirOut, mapDir);
     compact_data(dirOut, dirOut, TmpROIFilePrefix, OutROIFilePrefix, entry_x_file);
     // Data preparation
