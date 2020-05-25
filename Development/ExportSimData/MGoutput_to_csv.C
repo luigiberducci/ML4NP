@@ -19,9 +19,9 @@
 
 void MGoutput_to_csv(){
     // IO params
-    TString dir = "../Data/SimsForGiuseppe/root/";
-    TString fileName = "LGND20014String_bulk_A40_Z19_in_Cables_100000_-132364.root";
-    TString outFileBase = "output_AmbRad_A40_Z19_100000";
+    TString dir = "../Data/";
+    TString fileName = "LGND_200_exampleNeutron.root";
+    TString outFileBase = "LGND_200_exampleNeutron";
     // create the tree from input file
     TChain *fTree = new TChain("fTree");
     fTree->Add(dir + fileName);
@@ -109,7 +109,8 @@ void MGoutput_to_csv(){
 
             // Print each event by row
             out << pid << "," << p_trace_id << ",";
-            out << energydeposition << "," << kineticenergy << "," << time << ",";
+            out << setprecision(20) << energydeposition << "," << kineticenergy << ",";
+	    out << time << ",";
             out << x << "," << y << "," << z << ",";
             out << px << "," << py << "," << pz << ",";
             out << eventnumber << "," << tracknumber  << "," << creatorprocess << ",";
