@@ -36,12 +36,12 @@ void run_inout_dirs(const char * dirIn, const char * dirOut){
     while((entry = (char*)gSystem->GetDirEntry(dirp))) {
         TString fileName = entry;
         if(!isRootFile(fileName, "output"))    continue;
-        cout << "\t" << dirIn + fileName << endl;
+        cout << "\t" << dirIn + fileName;
 
         // loop file entries
         TFile *f = TFile::Open(fullDirIn + fileName);
         TTree *originalTree = (TTree*) f->Get("fTree");
-        Int_t previous_eventnumber = -1, eventnumber;
+        Int_t previous_eventnumber = -1, current_nrevents = 0, eventnumber;
         originalTree->SetBranchAddress("muonx", &x);
         originalTree->SetBranchAddress("muony", &y);
         originalTree->SetBranchAddress("muonz", &z);
@@ -54,10 +54,12 @@ void run_inout_dirs(const char * dirIn, const char * dirOut){
             originalTree->GetEntry(i);
             if(eventnumber != previous_eventnumber){
                 output_eventnumber++;
+		current_nrevents++;
                 previous_eventnumber = eventnumber;
                 fTree->Fill();  // Write the starting condition of the muon on each new event
             }
         }
+        cout << " -> Nr Events: " << current_nrevents << endl;
 	originalTree->Delete();
 	f->Close();
 	f->Delete();
@@ -74,5 +76,5 @@ void run_inout_dirs(const char * dirIn, const char * dirOut){
 }
 
 void extract_initial_muons(){
-    run_inout_dirs("./", "./");
+    run_inout_dirs("/home/data/Muons/", "./");
 }
