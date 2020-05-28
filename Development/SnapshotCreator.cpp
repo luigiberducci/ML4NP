@@ -162,8 +162,8 @@ void write_produced_event_in_outfile(ofstream& outCSV, Int_t prodEventID, vector
 void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefixIn, TString prefixOut){
     // Parameters
     const Double_t DeltaT = 4;    	// integration time (ns) - 4ns is Dt of FlashADC
-    const Int_t nDeltaT = 25;     	// number of successive integrations - 25 integrations of 4ns are 100ns
-    const Double_t margin = 40;         // Margin at the end to avoid partial events -> approx. event length
+    const Int_t nDeltaT = 125;     	// number of successive integrations - 25 integrations of 4ns are 100ns
+    const Double_t margin = 20;         // Margin at the end to avoid partial events -> approx. event length
     const int min_shifting = 0;	        // Interval shifting (min)
     const int max_shifting = nDeltaT * DeltaT - margin;	// Interval shifting (max)
     const int group_events = 1;	        // Number of events to be grouped in the same snapshot
@@ -230,7 +230,7 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
 	            if((ecounter % group_events == 1) || (group_events == 1)){
                         if((ecounter > 1) || (group_events == 1)){
                             prodevents_counter++;   // skip 1, where we only create datastruct
-                            if (prodevents_counter  % max_event_x_file == 1) {
+                            if (prodevents_counter % max_event_x_file == 1) {
                                 outCSV.close();
                                 file_part_id++; // Increment the id of file part (part1, part2, ..)
                                 TString outFile(createDatasetFilename(dirOut, prefixOut, nDeltaT, DeltaT, group_events, file_part_id));
