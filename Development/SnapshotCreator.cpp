@@ -166,7 +166,7 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
     const Double_t margin = 20;         // Margin at the end to avoid partial events -> approx. event length
     const int min_shifting = 0;	        // Interval shifting (min)
     const int max_shifting = nDeltaT * DeltaT - margin;	// Interval shifting (max)
-    const int group_events = 1;	        // Number of events to be grouped in the same snapshot
+    const int group_events = 5;	        // Number of events to be grouped in the same snapshot
     const int max_event_x_file = 100000;  // Max number of output events (snapshots) per file
     // Debug
     cout << "[Info] From files " << dirIn << "/" << prefixIn << "*" <<  endl;
@@ -283,8 +283,8 @@ int main(){
     // const char * dirIn = "/home/data/Ar39Preproc/";
     // const char * dirOut = "/home/data/Ar39Preproc/";
     // Local
-    const char * dirIn = "../Data/MuonsROI/";
-    const char * dirOut = "../Data/MuonsROI/";
-    produce_time_dataset(dirIn, dirOut, "SlicedDeposits_", "Muons2e6_Snapshots");
+    const char * dirIn = "../Data/ar39/";
+    const char * dirOut = "../Data/ar39/";
+    produce_time_dataset(dirIn, dirOut, "SlicedDeposits_", "Ar39_Snapshots");
     cout << "[Info] End.\n";
 }
