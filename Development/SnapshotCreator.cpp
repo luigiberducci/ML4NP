@@ -161,12 +161,13 @@ void write_produced_event_in_outfile(ofstream& outCSV, Int_t prodEventID, vector
 
 void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefixIn, TString prefixOut){
     // Parameters
-    const Double_t DeltaT = 4;    	// integration time (ns) - 4ns is Dt of FlashADC
-    const Int_t nDeltaT = 125;     	// number of successive integrations - 25 integrations of 4ns are 100ns
+    const Double_t DeltaT = 10000;    	// integration time (ns) - 4ns is Dt of FlashADC, 10000=10us
+    const Int_t nDeltaT = 1;     	// number of successive integrations - e.g. 25 integrations of 4ns are 100ns
     const Double_t margin = 20;         // Margin at the end to avoid partial events -> approx. event length
     const int min_shifting = 0;	        // Interval shifting (min)
-    const int max_shifting = nDeltaT * DeltaT - margin;	// Interval shifting (max)
-    const int group_events = 5;	        // Number of events to be grouped in the same snapshot
+    //const int max_shifting = nDeltaT * DeltaT - margin;	// Interval shifting (max)
+    const int max_shifting = 0; // No shift -> Trigger on first non-zero detection
+    const int group_events = 1;	        // Number of events to be grouped in the same snapshot
     const int max_event_x_file = 100000;  // Max number of output events (snapshots) per file
     // Debug
     cout << "[Info] From files " << dirIn << "/" << prefixIn << "*" <<  endl;
@@ -283,8 +284,8 @@ int main(){
     // const char * dirIn = "/home/data/Ar39Preproc/";
     // const char * dirOut = "/home/data/Ar39Preproc/";
     // Local
-    const char * dirIn = "../Data/ar39/";
-    const char * dirOut = "../Data/ar39/";
-    produce_time_dataset(dirIn, dirOut, "SlicedDeposits_", "Ar39_Snapshots");
+    const char * dirIn = "../Data/MuonsROI/";
+    const char * dirOut = "Out/T10us/Muons/";
+    produce_time_dataset(dirIn, dirOut, "SlicedDeposits_", "Muon_Snapshots");
     cout << "[Info] End.\n";
 }
