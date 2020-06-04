@@ -28,10 +28,14 @@ void MGoutput_to_csv(){
     // extract num entries
     Long64_t nentries = (Long64_t)fTree->GetEntries();
     // create step branches
+    MGMCRun *mcRun = 0;
+    MGTMCEventHeader *eventHeader = 0;
     MGTMCEventSteps *eventSteps = 0;
     MGTMCEventSteps *eventPrimaries = 0;
     const MGTMCStepData *step,*primaries;
     if(fTree != NULL){
+        fTree->SetBranchAddress("fMCRun", &mcRun);
+        fTree->SetBranchAddress("eventHeader", &eventHeader);
         fTree->SetBranchAddress("eventSteps", &eventSteps);
         fTree->SetBranchAddress("eventPrimaries", &eventPrimaries);
     }
@@ -56,7 +60,7 @@ void MGoutput_to_csv(){
 	    out.open(outFileBase + "_part" + outFileNumber + ".csv");
             //Print header
             out << "PID,ParentTrackID,energydeposition,kineticenergy,time,x,y,z,";
-            out << "px,py,pz,eventnumber,tracknumber,creatorprocess,parentnucleusPID";
+            out << "px,py,pz,eventnumber,tracknumber,creatorprocess,physvolname,parentnucleusPID";
             out << endl;
             counterEventInFile = 0;
 	}
@@ -79,14 +83,15 @@ void MGoutput_to_csv(){
         Double_t pri_pz = primaries->GetPz();
         Int_t pri_tracknumber = primaries->GetTrackID();
         TString pri_creatorprocess = primaries->GetProcessName();
+        TString pri_physvolname = primaries->GetPhysVolName();
         Int_t pri_parentnucleusPID = 666;   // to mark that is not implemented
         // Print each event by row
         out << pri_pid << "," << pri_p_trace_id << ",";
-        out << pri_energydeposition << "," << pri_kineticenergy << "," << pri_time << ",";
+        out << setprecision(20) << pri_energydeposition << "," << pri_kineticenergy << "," << pri_time << ",";
         out << pri_x << "," << pri_y << "," << pri_z << ",";
         out << pri_px << "," << pri_py << "," << pri_pz << ",";
         out << eventnumber << "," << pri_tracknumber  << "," << pri_creatorprocess << ",";
-        out << pri_parentnucleusPID << ",";
+        out << pri_physvolname << "," << pri_parentnucleusPID << ",";
         out << endl;
 	// Extract steps
         for (Int_t j = 0; j < eventSteps->GetNSteps();j++){
@@ -105,6 +110,7 @@ void MGoutput_to_csv(){
             Double_t pz = step->GetPz();
             Int_t tracknumber = step->GetTrackID();
             TString creatorprocess = step->GetProcessName();
+            TString physvolname = primaries->GetPhysVolName();
             Int_t parentnucleusPID = 666;   // to mark that is not implemented
 
             // Print each event by row
@@ -114,7 +120,7 @@ void MGoutput_to_csv(){
             out << x << "," << y << "," << z << ",";
             out << px << "," << py << "," << pz << ",";
             out << eventnumber << "," << tracknumber  << "," << creatorprocess << ",";
-            out << parentnucleusPID << ",";
+            out << physvolname << "," << parentnucleusPID << ",";
             out << endl;
         }
         // Update last event ID in file
