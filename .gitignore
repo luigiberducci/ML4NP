@@ -1,6 +1,8 @@
 Development/xaa
 Data/SimsForGiuseppe
 Notebooks/out/
+ML4GeneralMuons/logs/*
+ML4GeneralMuons/models/*
 .*
 ~*
 *.dat
