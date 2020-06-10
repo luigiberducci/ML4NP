@@ -1,6 +1,7 @@
 import numpy as np, pandas as pd, os
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_curve
+from sklearn.metrics import precision_recall_curve
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import accuracy_score, f1_score
 from sklearn.metrics import confusion_matrix as cv
@@ -84,18 +85,27 @@ def get_my_confusion_matrix_as_string(g_test, y_pred):
     return cv_string
 
 def plot_roc_curve_and_get_auc(y_test, y_pred, decision_threshold):
-    fpr, tpr, thresholds = roc_curve(y_test, y_pred)
+    fpr, tpr, thresholds_roc = roc_curve(y_test, y_pred)
+    precision, recall, thresholds_prec = precision_recall_curve(y_test, y_pred)
     auc = roc_auc_score(y_test, y_pred)
-    plt.plot(fpr, tpr)
-    if "hinge" in loss:
-        threshold_id = np.argmin(abs(thresholds-decision_threshold))
-    else:
-        threshold_id = np.argmin(abs(thresholds-decision_threshold))
-    plt.scatter(fpr[threshold_id], tpr[threshold_id], color='r', label="Threshold: {:.2f}".format(thresholds[threshold_id]))
-    plt.text(.5, .5, "Training Set Size: {},\nTest Set Size: {}\nAUC: {:.3f}".format(len(X_train), len(X_test), auc))
-    plt.xlabel("False Positive Rate (FPR)")
-    plt.ylabel("True Positive Rate (TPR)")
-    plt.title("ROC Curve")
+#    plt.subplot(1, 2, 1)
+#    plt.plot(fpr, tpr)
+#    threshold_id = np.argmin(abs(thresholds_roc-decision_threshold))
+#    plt.scatter(fpr[threshold_id], tpr[threshold_id], color='r', label="Threshold: {:.2f}".format(thresholds_roc[threshold_id]))
+#    plt.text(.5, .5, "Training Set Size: {},\nTest Set Size: {}\nAUC: {:.3f}".format(len(X_train), len(X_test), auc))
+#    plt.xlabel("False Positive Rate (FPR)")
+#    plt.ylabel("True Positive Rate (TPR)")
+#    plt.title("ROC Curve")
+#    plt.legend()
+
+ #   plt.subplot(1, 2, 2)
+    plt.plot(recall, precision)
+    threshold_id = np.argmin(abs(thresholds_prec-decision_threshold))
+    plt.scatter(recall[threshold_id], precision[threshold_id], color='r', label="Threshold: {:.2f}".format(thresholds_prec[threshold_id]))
+    plt.text(.25, .5, "Training Set Size: {},\nTest Set Size: {}".format(len(X_train), len(X_test)))
+    plt.xlabel("Efficiency (or Recall)")
+    plt.ylabel("Purity (or Precision)")
+    plt.title("Purity vs Efficiency Curve")
     plt.legend()
     plt.show()
     return auc
@@ -166,7 +176,8 @@ for model, model_name, decision_threshold in zip(models, model_names, decision_t
     precision = tp / (tp + fp)    # positive predictive power
     f1score = f1_score(y_test, y_binary_pred)    # armonic mean precision, recall
     auc = plot_roc_curve_and_get_auc(y_test, y_pred, decision_threshold)
-    metrics_on_testset.append({"accuracy": accuracy,
+    metrics_on_testset.append({"cv": [tn, fp, fn, tp],
+                               "accuracy": accuracy,
                                "precision": precision,
                                "recall": recall,
                                "f1score": f1score,
@@ -176,6 +187,7 @@ for model, model_name, decision_threshold in zip(models, model_names, decision_t
 for model_name, metrics in zip(model_names, metrics_on_testset):
     output = "[Info] Model: {}.\n".format(model_name)
     output += get_my_confusion_matrix_as_string(g_test, y_pred)
+    output += "[Test Result] tn, fp, fn, tp: {}\n".format(metrics["cv"])
     output += "[Test Result] Accuracy: {:.3f}, Precision: {:.3f}, Recall: {:.3f}, " \
               "F1: {:.3f}, AUC: {:.3f}\n".format(metrics["accuracy"], metrics["precision"], metrics["recall"],
                                                metrics["f1score"], metrics["auc"])
