@@ -53,6 +53,7 @@ void run_inout_dirs(const char * dirIn, const char * dirOut){
         for(Int_t i = 0; i < originalTree->GetEntries(); i++){
             originalTree->GetEntry(i);
             if(eventnumber != previous_eventnumber){
+		cout << "Event: " << eventnumber << endl;
                 output_eventnumber++;
 		current_nrevents++;
                 previous_eventnumber = eventnumber;
