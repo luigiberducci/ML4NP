@@ -88,10 +88,11 @@ pair<TFile*, TTree*> getReducedTree(const char * dirIn, const char * dirOut, TSt
     cutEvent += EVENTxFILE;
     checkTree = originalTree->CopyTree(cutEvent);
     assert(checkTree->GetEntries() == 0); // Assert: risk event overlap
-    // cut: ROI & Edep>0
+    // cut: ROI
     TString cutX("(x >= -700.) & (x <= 700.)");
     TString cutY("(y >= -700.) & (y <= 700.)");
     TString cutZ("(z >= -845.) & (z <= 845.)");
+    // cut: edep>0 (deprecated)
     //TString cutE("(energydeposition > 0)");
     // cut original tree
     reducedTree = originalTree->CopyTree(cutX + " & " + cutY + " & " + cutZ);
