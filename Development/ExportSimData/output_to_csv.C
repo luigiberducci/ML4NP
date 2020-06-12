@@ -40,18 +40,18 @@ void output_to_csv(TString inFilepath){
     TTreeReaderValue<Double_t> px(theReader, "px");
     TTreeReaderValue<Double_t> py(theReader, "py");
     TTreeReaderValue<Double_t> pz(theReader, "pz");
-    TTreeReaderValue<Double_t> muonx(theReader, "muonx");
-    TTreeReaderValue<Double_t> muony(theReader, "muony");
-    TTreeReaderValue<Double_t> muonz(theReader, "muonz");
-    TTreeReaderValue<Double_t> muonpx(theReader, "muonpx");
-    TTreeReaderValue<Double_t> muonpy(theReader, "muonpy");
-    TTreeReaderValue<Double_t> muonpz(theReader, "muonpz");
-    TTreeReaderValue<Double_t> muone(theReader, "muonenergy");
+    //TTreeReaderValue<Double_t> muonx(theReader, "muonx");
+    //TTreeReaderValue<Double_t> muony(theReader, "muony");
+    //TTreeReaderValue<Double_t> muonz(theReader, "muonz");
+    //TTreeReaderValue<Double_t> muonpx(theReader, "muonpx");
+    //TTreeReaderValue<Double_t> muonpy(theReader, "muonpy");
+    //TTreeReaderValue<Double_t> muonpz(theReader, "muonpz");
+    //TTreeReaderValue<Double_t> muone(theReader, "muonenergy");
     TTreeReaderValue<Double_t> detectionefficiency(theReader, "detectionefficiency");
     TTreeReaderValue<Int_t> eventnumber(theReader, "inc_eventnumber");
     TTreeReaderValue<Int_t> tracknumber(theReader, "tracknumber");
-    TTreeReaderValue<string> creatorprocess(theReader, "creatorprocess");
-    // TTreeReaderValue<string> creatorprocess(theReader, "process");
+    //TTreeReaderValue<string> creatorprocess(theReader, "creatorprocess");
+    TTreeReaderValue<string> creatorprocess(theReader, "process");
     TTreeReaderValue<Int_t> parentnucleusPID(theReader, "parentnucleusPID");
 
     // Loop over entries
@@ -70,7 +70,7 @@ void output_to_csv(TString inFilepath){
             //Print header
             out << "PID,ParentTrackID,energydeposition,kineticenergy,time,x,y,z,";
             out << "px,py,pz,eventnumber,tracknumber,creatorprocess,parentnucleusPID,detectionefficiency,";
-            out << "muonx,muony,muonz,muonpx,muonpy,muonpz,muonenergy,";
+            //out << "muonx,muony,muonz,muonpx,muonpy,muonpz,muonenergy,";
             out << endl;
 	    }
         i++;
@@ -80,9 +80,9 @@ void output_to_csv(TString inFilepath){
         out << *px << "," << *py << "," << *pz << ",";
         out << *eventnumber << "," << *tracknumber  << "," << *creatorprocess << ",";
         out << *parentnucleusPID << "," << *detectionefficiency << ",";
-        out << *muonx << "," << *muony << "," << *muonz << ",";
-        out << *muonpx << "," << *muonpy << "," << *muonpz << ",";
-        out << *muone << ",";
+        //out << *muonx << "," << *muony << "," << *muonz << ",";
+        //out << *muonpx << "," << *muonpy << "," << *muonpz << ",";
+        //out << *muone << ",";
         out << endl;
    }
    std::cout << "\n[Info] Written " << i << " entries in " << outFileNumber << " files.\n";
