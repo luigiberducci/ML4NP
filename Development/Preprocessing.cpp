@@ -338,8 +338,8 @@ set<Int_t> getSetOfEventNumbers(TTree *fTree){
 int main(){
     cout << "[Info] Preprocessing...\n";
     // Data cleaning
-    const char * dirIn = "/home/data/Muons/";
-    const char * dirOut = "/home/data/MuonsPreproc/";
+    const char * dirIn = "/home/data/Ar39/06-14-2020-10M/";
+    const char * dirOut = "/home/data/Ar39Preproc/06-14-2020-10M/";
     const char * mapDir = "/home/data/OpticalMaps/";
     // Local
     // const char * dirIn = "../Data/muons/MuonsROI/";
@@ -347,8 +347,8 @@ int main(){
     // const char * mapDir = "../Data/OpticalMaps/";
     // Data cleaning
     Long64_t entry_x_file = 20000000;	//Compact root files to have this number of entries
-    // data_cleaning(dirIn, dirOut, mapDir);
-    // compact_data(dirOut, dirOut, TmpROIFilePrefix, OutROIFilePrefix, entry_x_file);
+    data_cleaning(dirIn, dirOut, mapDir);
+    compact_data(dirOut, dirOut, TmpROIFilePrefix, OutROIFilePrefix, entry_x_file);
     // Data preparation
     convert_to_sliced_detections(dirOut, dirOut);
     cout << "[Info] End.\n";
