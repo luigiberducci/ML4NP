@@ -300,9 +300,18 @@ void convert_to_sliced_detections(const char * dirIn, const char * dirOut){
                 readouts[sipm] = 0;
             }
             Long64_t opDetected = round(Edep * opYield * deteff * quantumEff);
+	    if(eventnumber==107111){
+	    	cout << "\t[Debug] Event: " << eventnumber << ",";
+	    	cout << "\t[Debug] Edep: " << Edep << ",";
+	    	cout << "\t[Debug] DetEff: " << deteff << ",";
+	    	cout << "\t[Debug] Quantum: " << quantumEff<< ",";
+	    	cout << "\t[Debug] opDetected: " << opDetected << ",";
+	    }
             assert(opDetected>=0);
             for(Long64_t op = 0; op < opDetected; op++){
                 int r = round(rnd.Gaus(m, s));
+	        if(eventnumber==107111){
+			cout << "[Debug] Segment: " << segment << ", offset r: " << r << endl;
                 if (segment + r < 0)
                     readouts[segment + r + nSiPM]++;
                 else

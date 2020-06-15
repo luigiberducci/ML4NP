@@ -82,8 +82,8 @@ map<Int_t, Double_t> getFirstTimeOfEvents(TTree *fTree){
     map<Int_t, Double_t> map_event_t0;
     for(Long64_t i = 0; i < fTree->GetEntries(); i++){
         fTree->GetEntry(i);
-	    map<Int_t, Double_t>::iterator it = map_event_t0.find(eventnumber);
-	    if ((it == map_event_t0.end()) || (it->second > time)) {
+	map<Int_t, Double_t>::iterator it = map_event_t0.find(eventnumber);
+	if ((it == map_event_t0.end()) || (it->second > time)) {
             map_event_t0.insert(make_pair(eventnumber, time));
         }
     }
@@ -223,6 +223,9 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
         Long64_t nEntries = fTree->GetEntries();
         for(Int_t i=0; i < nEntries; i++){
 	    fTree->GetEntry(i);
+	    // debug
+	    if(eventnumber != 107111) continue;
+
 	    if(eventnumber != last_event){	// New Event
 	    	    last_event = eventnumber;
                     ecounter++;
@@ -255,16 +258,25 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
                 cout << "\rentry: " << i << "/" << nEntries << std::flush;
 	    Double_t shifted_time = time - map_event_t0[eventnumber] + map_event_offset[eventnumber];
             int id_time_bin = floor((shifted_time) / DeltaT);
+	    // DEBUG
+	    cout << "[Debug] Time: " << time << ",";
+	    cout << "T0: " << map_event_t0[eventnumber] << ",";
+	    cout << "Offset: " << map_event_offset[eventnumber] << endl;
+	    cout << "[Debug] ID Time Bin: " << id_time_bin << endl;
+
             if(id_time_bin < 0 || id_time_bin >= nDeltaT){
 	        //cout << "[Info] Skipped entry out-of-time. Entry: " << i << ", Event: " << eventnumber << endl;
                 skipped_entries++;
                 continue;   // all the others are bigger than time T (eventually overflow)
 	    }
             // Integrate in the time bin
+	    Int_t npe = 0;
             for(int sipm = 0; sipm < nSiPM; sipm++){
             	TSiPMEvent[id_time_bin][sipm] += SiPM[sipm];
                 PEDetectedInDt[id_time_bin] += SiPM[sipm];
+                npe += SiPM[sipm];
             }
+	    cout << "[Debug] NPE: " << npe << endl;
             EDepositedInDt[id_time_bin] += energydeposition;
         }
         // Close file and tree
