@@ -159,7 +159,7 @@ void write_produced_event_in_outfile(ofstream& outCSV, Int_t prodEventID, vector
     }
 }
 
-void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefixIn, TString prefixOut){
+void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefixIn, TString prefixOut, Int_t group_events){
     // Parameters
     const Double_t DeltaT = 10000;    	// integration time (ns) - 4ns is Dt of FlashADC, 10000=10us
     const Int_t nDeltaT = 1;     	// number of successive integrations - e.g. 25 integrations of 4ns are 100ns
@@ -167,7 +167,6 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
     const int min_shifting = 0;	        // Interval shifting (min)
     //const int max_shifting = nDeltaT * DeltaT - margin;	// Interval shifting (max)
     const int max_shifting = 0; // No shift -> Trigger on first non-zero detection
-    const int group_events = 1;	        // Number of events to be grouped in the same snapshot
     const int max_event_x_file = 100000;  // Max number of output events (snapshots) per file
     // Debug
     cout << "[Info] From files " << dirIn << "/" << prefixIn << "*" <<  endl;
@@ -284,8 +283,20 @@ int main(){
     // const char * dirIn = "/home/data/Ar39Preproc/";
     // const char * dirOut = "/home/data/Ar39Preproc/";
     // Local
-    const char * dirIn = "../Data/MuonsROI/";
-    const char * dirOut = "Out/T10us/Muons/";
-    produce_time_dataset(dirIn, dirOut, "SlicedDeposits_", "Muon_Snapshots");
+    //const char * dirIn = "../Data/ar39/06-14-2020-10M/";
+    //const char * dirOut = "Out/T10us/Ar39_1to7Pileups/";
+    //const int group_events = 1;	        // Number of events to be grouped in the same snapshot
+    // User input
+    TString dirIn, dirOut, outputPrefix;
+    Int_t groupEvents;
+    cout << "[Input] What is the INPUT directory? (files `SlicedDeposits_*root`)" << endl;
+    cin >> dirIn;
+    cout << "[Input] What is the OUTPUT directory?" << endl;
+    cin >> dirOut;
+    cout << "[Input] What is the output PREFIX?" << endl;
+    cin >> outputPrefix;
+    cout << "[Input] How many events to GROUP for each snapshot?" << endl;
+    cin >> groupEvents;
+    produce_time_dataset(dirIn, dirOut, "SlicedDeposits_", outputPrefix, groupEvents);
     cout << "[Info] End.\n";
 }
