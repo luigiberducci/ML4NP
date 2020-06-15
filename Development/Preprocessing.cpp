@@ -18,7 +18,7 @@
 
 #define RNDSEED 123456789
 #define PI 3.14159265
-#define EVENTxFILE 20000
+#define EVENTxFILE 100000
 
 #define CJSimFilePrefix "output"
 #define TmpROIFilePrefix "tmproi"
@@ -217,12 +217,14 @@ void compact_data(const char * dirIn, const char * dirOut, TString prefixIn, TSt
     cout << "[Info] Merge data: completed.\n";
 }
 
-TString createDatasetFilename(const char * dirOut, TString prefixOut, Int_t nSlices, Double_t opYield, Int_t filePartID){
+TString createDatasetFilename(const char * dirOut, TString prefixOut, Int_t nSlices, Double_t opYield, Double_t quantumEff, Int_t filePartID){
     char* fullDirOut = gSystem->ExpandPathName(dirOut);
     TString outFileName = fullDirOut + prefixOut + "_Slices";
     outFileName += nSlices;
     outFileName += "_Yield";
     outFileName += opYield;
+    outFileName += "_QuantumEff";
+    outFileName += quantumEff;
     outFileName += "_Seed";
     outFileName += RNDSEED;
     outFileName += "_Part";
@@ -233,10 +235,11 @@ TString createDatasetFilename(const char * dirOut, TString prefixOut, Int_t nSli
 
 void convert_to_sliced_detections(const char * dirIn, const char * dirOut){
     cout << "[Info] Data preparation...\n";
-    double m=0, s=5;        // tuned for 72 sipms
-    const int opYield=40;   // 40 ops / KeV
-    const int nSiPM = 72;
-    const double thetaSegment = 2 * PI / nSiPM;
+    Double_t m=0, s=5;        // tuned for 72 sipms
+    const Int_t opYield=40;   // 40 ops / KeV
+    const Double_t quantumEff = .40;   // 40% quantum efficiency
+    const Int_t nSiPM = 72;
+    const Double_t thetaSegment = 2 * PI / nSiPM;
     char* fullDirIn = gSystem->ExpandPathName(dirIn);
     char* fullDirOut = gSystem->ExpandPathName(dirOut);
     void* dirp = gSystem->OpenDirectory(fullDirIn);
@@ -265,7 +268,7 @@ void convert_to_sliced_detections(const char * dirIn, const char * dirOut){
 	
 	// Create new output file
 	filePartID++;
-        TString outFilepath(createDatasetFilename(dirOut, TmpSiPMFilePrefix, nSiPM, opYield, filePartID));
+        TString outFilepath(createDatasetFilename(dirOut, TmpSiPMFilePrefix, nSiPM, opYield, quantumEff, filePartID));
         TFile *output = TFile::Open(outFilepath, "RECREATE");
         TTree SiPMTree("fTree", "");
         TParameter<Int_t> *NSiPM = new TParameter<Int_t>("NSiPM", nSiPM);
@@ -296,7 +299,7 @@ void convert_to_sliced_detections(const char * dirIn, const char * dirOut){
             for(int sipm = 0; sipm < nSiPM; sipm++){
                 readouts[sipm] = 0;
             }
-            Long64_t opDetected = ceil(Edep * opYield * deteff);
+            Long64_t opDetected = round(Edep * opYield * deteff * quantumEff);
             assert(opDetected>=0);
             for(Long64_t op = 0; op < opDetected; op++){
                 int r = round(rnd.Gaus(m, s));
@@ -338,8 +341,8 @@ set<Int_t> getSetOfEventNumbers(TTree *fTree){
 int main(){
     cout << "[Info] Preprocessing...\n";
     // Data cleaning
-    const char * dirIn = "/home/data/Ar39/06-14-2020-10M/";
-    const char * dirOut = "/home/data/Ar39Preproc/06-14-2020-10M/";
+    const char * dirIn = "/home/data/Muons/";
+    const char * dirOut = "/home/data/MuonsPreproc/";
     const char * mapDir = "/home/data/OpticalMaps/";
     // Local
     // const char * dirIn = "../Data/muons/MuonsROI/";
