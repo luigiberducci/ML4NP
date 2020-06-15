@@ -83,8 +83,11 @@ map<Int_t, Double_t> getFirstTimeOfEvents(TTree *fTree){
     for(Long64_t i = 0; i < fTree->GetEntries(); i++){
         fTree->GetEntry(i);
 	map<Int_t, Double_t>::iterator it = map_event_t0.find(eventnumber);
-	if ((it == map_event_t0.end()) || (it->second > time)) {
-            map_event_t0.insert(make_pair(eventnumber, time));
+	if (it == map_event_t0.end()){
+		map_event_t0.insert(make_pair(eventnumber, time));
+	}else{
+		if (it->second > time)
+			it->second = time;	//eventually update time with min val
         }
     }
     return map_event_t0;
@@ -167,7 +170,7 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
     const int min_shifting = 0;	        // Interval shifting (min)
     //const int max_shifting = nDeltaT * DeltaT - margin;	// Interval shifting (max)
     const int max_shifting = 0; // No shift -> Trigger on first non-zero detection
-    const int max_event_x_file = 100000;  // Max number of output events (snapshots) per file
+    const int max_event_x_file = 250000;  // Max number of output events (snapshots) per file
     // Debug
     cout << "[Info] From files " << dirIn << "/" << prefixIn << "*" <<  endl;
     cout << "[Info] Create snapshot of T=" << nDeltaT * DeltaT << " ns, ";
@@ -223,8 +226,6 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
         Long64_t nEntries = fTree->GetEntries();
         for(Int_t i=0; i < nEntries; i++){
 	    fTree->GetEntry(i);
-	    // debug
-	    if(eventnumber != 107111) continue;
 
 	    if(eventnumber != last_event){	// New Event
 	    	    last_event = eventnumber;
@@ -258,11 +259,6 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
                 cout << "\rentry: " << i << "/" << nEntries << std::flush;
 	    Double_t shifted_time = time - map_event_t0[eventnumber] + map_event_offset[eventnumber];
             int id_time_bin = floor((shifted_time) / DeltaT);
-	    // DEBUG
-	    cout << "[Debug] Time: " << time << ",";
-	    cout << "T0: " << map_event_t0[eventnumber] << ",";
-	    cout << "Offset: " << map_event_offset[eventnumber] << endl;
-	    cout << "[Debug] ID Time Bin: " << id_time_bin << endl;
 
             if(id_time_bin < 0 || id_time_bin >= nDeltaT){
 	        //cout << "[Info] Skipped entry out-of-time. Entry: " << i << ", Event: " << eventnumber << endl;
@@ -270,13 +266,10 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
                 continue;   // all the others are bigger than time T (eventually overflow)
 	    }
             // Integrate in the time bin
-	    Int_t npe = 0;
             for(int sipm = 0; sipm < nSiPM; sipm++){
             	TSiPMEvent[id_time_bin][sipm] += SiPM[sipm];
                 PEDetectedInDt[id_time_bin] += SiPM[sipm];
-                npe += SiPM[sipm];
             }
-	    cout << "[Debug] NPE: " << npe << endl;
             EDepositedInDt[id_time_bin] += energydeposition;
         }
         // Close file and tree
