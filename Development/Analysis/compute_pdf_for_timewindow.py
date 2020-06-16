@@ -27,9 +27,10 @@ timewindow = args.time
 multxp = args.multxp    # used to see prob of events in the same time (muon || ar39)
 print("[Debug] Rate in T: {}".format(rate_t))
 
-print("K\tp~Pois(k,rate)\tE[X=1|X~Gm(p)]\tExp.Time (Years)")
+print("K\tp~Pois(k,rate)\tE[X=1|X~Gm(p)]\tExp.Time (Years)\tExp.Time (Days)")
 for k in range(args.maxk + 1):
     prob_kevents_in_window = multxp * pois(rate_t, k)
     exp_snapshot_to_first = np.ceil(1 / prob_kevents_in_window)
     exp_time_to_first = convert_ns_to_years(exp_snapshot_to_first * timewindow)
-    print("{}\t{:.8e}\t{:e}\t{}".format(k, prob_kevents_in_window, exp_snapshot_to_first, exp_time_to_first))
+    exp_time_to_first_days = exp_time_to_first * 365
+    print("{}\t{:.8e}\t{:e}\t{}\t{}".format(k, prob_kevents_in_window, exp_snapshot_to_first, exp_time_to_first, exp_time_to_first_days))
