@@ -1,0 +1,21 @@
+[Info] Model: model_2conv_1maxpool_1dense_25epochs_32batch_adam_binary_crossentropy_0.5decthreshold_20200609-190238.
+Test Set Size: 5023 (2519 Ar39, 2504 Mu)
+		Pred	Pred	| Nr
+		Ar39	Mu	| samples
+--------------------------------------------
+1 Ar39		188	147	| 335
+2 Ar39		184	192	| 376
+3 Ar39		197	155	| 352
+4 Ar39		215	127	| 342
+5 Ar39		305	83	| 388
+6 Ar39		288	63	| 351
+7 Ar39		340	35	| 375
+--------------------------------------------
+Mu + 0 Ar39	57	599	| 656
+Mu + 1 Ar39	111	500	| 611
+Mu + 2 Ar39	173	473	| 646
+Mu + 3 Ar39	263	328	| 591
+--------------------------------------------
+Total		2321	2702	| 5023
+[Test Result] tn, fp, fn, tp: [1717, 802, 604, 1900]
+[Test Result] Accuracy: 0.720, Precision: 0.703, Recall: 0.759, F1: 0.730, AUC: 0.813
