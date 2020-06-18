@@ -1,6 +1,12 @@
+// File: DetectionSlicer.cpp
+// Author: Luigi Berducci
+// Purpose: generate a spatial distribution of detections,
+//          starting from Energy deposited in LAr.
 //
-// Created by luigi on 18/06/20.
-//
+// Usage:
+// $>root
+// root [0].L DetectionSlicer.cpp
+// root [0]DetectionSlicer("Muons", "output", "Output")
 
 #define RNDSEED 123456789
 #define PI 3.14159265
@@ -104,7 +110,7 @@ void convertSingleFile(TString inFilePath, TString outFilePath, TString treeName
     TBranch *bY = SlicedTree.Branch("y", &y, "y/D");
     TBranch *bZ = SlicedTree.Branch("z", &z, "z/D");
     TBranch *bE = SlicedTree.Branch("energydeposition", &Edep, "energydeposition/D");
-    TBranch *bPE = SlicedTree.Branch("pedetected", &pedetected, "pedetected/D");
+    TBranch *bPE = SlicedTree.Branch("pedetected", &pedetected, "pedetected/I");
     TBranch *bDE = SlicedTree.Branch("detectionefficiency", &deteff, "detectionefficiency/D");
     TBranch *bQE = SlicedTree.Branch("quantumefficiency", &quantumEff, "quantumefficiency/D");
     array<TBranch*, NSLICES> branchSlices;
@@ -143,12 +149,12 @@ void convertSingleFile(TString inFilePath, TString outFilePath, TString treeName
         int currentSliceID = getCurrentSliceID(x, y, NSLICES);
         assert((currentSliceID >= 0) & (currentSliceID < NSLICES));
         // Spread detections
-        Long64_t opDetected = round(Edep * OPYIELD * deteff * QUANTUMEFF);
-        assert(opDetected>=0);
+        pedetected = round(Edep * OPYIELD * deteff * QUANTUMEFF);
+        assert(pedetected>=0);
         for(int slice = 0; slice < NSLICES; slice++){
             readouts[slice] = 0;     // Reset readouts
         }
-        for(Long64_t op = 0; op < opDetected; op++){
+        for(Long64_t pe = 0; pe < pedetected; pe++){
             int activated_slice = (currentSliceID + (int)round(rnd.Gaus(M, S))) % NSLICES;
             assert((activated_slice > -NSLICES) & (activated_slice < NSLICES));
             if (activated_slice < 0)
@@ -156,7 +162,7 @@ void convertSingleFile(TString inFilePath, TString outFilePath, TString treeName
             else
                 readouts[activated_slice]++;
         }
-        if((!writeOnlyNonZeroDetections) || (opDetected > 0)){
+        if((!writeOnlyNonZeroDetections) || (pedetected > 0)){
             SlicedTree.Fill();
             if(eventnumber > lastWrittenEventNr){
                 kWrittenEvents++;
@@ -176,7 +182,6 @@ void convertSingleFile(TString inFilePath, TString outFilePath, TString treeName
     cout << "(" << kROIEvents << " in ROI)" << endl;
     cout << "\t[Info] Number of events produced: " << kWrittenEvents << endl;
     cout << "\t[Info] Output written in " << output->GetName() << endl << endl;
-    // TODO: add time
     // Write output
     SlicedTree.Write();
     nSlicesParam->Write();
