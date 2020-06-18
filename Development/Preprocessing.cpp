@@ -266,8 +266,8 @@ void convert_to_sliced_detections(const char * dirIn, const char * dirOut){
         fTree->SetBranchAddress("energydeposition", &Edep);
         fTree->SetBranchAddress("detectionefficiency", &deteff);
 	
-	// Create new output file
-	filePartID++;
+	    // Create new output file
+	    filePartID++;
         TString outFilepath(createDatasetFilename(dirOut, TmpSiPMFilePrefix, nSiPM, opYield, quantumEff, filePartID));
         TFile *output = TFile::Open(outFilepath, "RECREATE");
         TTree SiPMTree("fTree", "");
@@ -302,8 +302,8 @@ void convert_to_sliced_detections(const char * dirIn, const char * dirOut){
             Long64_t opDetected = round(Edep * opYield * deteff * quantumEff);
             assert(opDetected>=0);
             for(Long64_t op = 0; op < opDetected; op++){
-		int activated_slice = (segment + (int)round(rnd.Gaus(m, s))) % nSiPM;
-		assert((activated_slice > -nSiPM) & (activated_slice < nSiPM));
+		    int activated_slice = (segment + (int)round(rnd.Gaus(m, s))) % nSiPM;
+		    assert((activated_slice > -nSiPM) & (activated_slice < nSiPM));
                 if (activated_slice < 0)
                     readouts[activated_slice + nSiPM]++;
                 else
@@ -314,7 +314,7 @@ void convert_to_sliced_detections(const char * dirIn, const char * dirOut){
                 produced_events.insert(eventnumber);
             }
         }
-	// Debug
+	    // Debug
         cout << " -> " << fullDirOut << output->GetName() << endl;
         cout << "\tOriginal Events: " << original_events.size() << ",\n";
         cout << "\tProduced Events: " << produced_events.size() << "\n\n";
