@@ -117,10 +117,10 @@ void convertSingleFile(TString inFilePath, TString outFilePath, TString treeName
     for(int slice = 0; slice < NSLICES; slice++){
         TString branchName = "Slice";
         branchName += slice;
-        TString branchDesc = branchName + "/D";
+        TString branchDesc = branchName + "/I";
         branchSlices[slice] = SlicedTree.Branch(branchName, &readouts[slice], branchDesc);
     }
-    // Loop
+    // Loop over tree entries
     TRandom rnd = TRandom(RNDSEED);
     Int_t kAllEvents = 0, lastReadEventNr = -1;
     Int_t kROIEvents = 0, lastReadROIEventNr = -1;
