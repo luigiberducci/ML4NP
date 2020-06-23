@@ -28,7 +28,9 @@ const Double_t QUANTUMEFF = 0.40;   // Quantum Efficiency of SiPMs
 const Double_t M = 0, S = 5;        // Mean, StdDev of Gaussian used to sample where PE are detected
 // Optical Map
 TFile * mapFile;
+TFile * spatMapFile;
 TH3D * hMap;
+TH2D * sMap;
 
 Bool_t isRootFile(TString fileName, TString prefix){
     // Return `true` if the filename `fileName` is a ROOT file starting wt `prefix`, otherwise `false`.
@@ -85,7 +87,7 @@ void convertSingleFile(TString inFilePath, TString outFilePath, TString treeName
     TFile *f = TFile::Open(inFilePath);
     TTree *simTree = (TTree*) f->Get(treeName);
     // Connect branches
-    Double_t x, y, z, time, Edep;
+    Double_t x, y, z, r, time, Edep;
     Int_t eventnumber;
     simTree->SetBranchAddress("x", &x);
     simTree->SetBranchAddress("y", &y);
@@ -109,6 +111,7 @@ void convertSingleFile(TString inFilePath, TString outFilePath, TString treeName
     TBranch *bX = SlicedTree.Branch("x", &x, "x/D");
     TBranch *bY = SlicedTree.Branch("y", &y, "y/D");
     TBranch *bZ = SlicedTree.Branch("z", &z, "z/D");
+    TBranch *bR = SlicedTree.Branch("r", &r, "r/D");
     TBranch *bE = SlicedTree.Branch("energydeposition", &Edep, "energydeposition/D");
     TBranch *bPE = SlicedTree.Branch("pedetected", &pedetected, "pedetected/I");
     TBranch *bDE = SlicedTree.Branch("detectionefficiency", &deteff, "detectionefficiency/D");
@@ -145,6 +148,8 @@ void convertSingleFile(TString inFilePath, TString outFilePath, TString treeName
             deteff = 0.0;
         }
         assert(deteff >= 0.0 & deteff <= 1.0);
+        // Compute the radius
+        r = sqrt(x*x + y*y);
         // Compute the current slice
         int currentSliceID = getCurrentSliceID(x, y, NSLICES);
         assert((currentSliceID >= 0) & (currentSliceID < NSLICES));
@@ -154,8 +159,10 @@ void convertSingleFile(TString inFilePath, TString outFilePath, TString treeName
         for(int slice = 0; slice < NSLICES; slice++){
             readouts[slice] = 0;     // Reset readouts
         }
+        TH1D * hitspace_dist = sMap->ProjectionY("py", (Int_t) round(r));    // take the distribution based on distance from origin
+        assert(pedetected==0 || hitspace_dist->ComputeIntegral()>0);
         for(Long64_t pe = 0; pe < pedetected; pe++){
-            int activated_slice = (currentSliceID + (int)round(rnd.Gaus(M, S))) % NSLICES;
+            int activated_slice = (currentSliceID + (int)round(hitspace_dist->GetRandom())) % NSLICES;
             assert((activated_slice > -NSLICES) & (activated_slice < NSLICES));
             if (activated_slice < 0)
                 readouts[activated_slice + NSLICES]++;
@@ -199,6 +206,16 @@ void loadOpticalMap(const char * mapDir="OpticalMaps",
     mapFile = TFile::Open(mapFilePath);
     mapFile->GetObject(mapObjectName, hMap);
     cout << "[Info] Loaded Optical Map " << mapFilePath << endl;
+}
+
+void loadSpatialMap(const char * mapDir="OpticalMaps",
+                    const char * mapFileName = "ToySpatialMap_710R_72Slices_1000ops",
+                    const char * mapObjectName = "SpatialMap"){
+    TString mapFilePath;
+    mapFilePath.Form("%s/%s.root", mapDir, mapFileName);
+    spatMapFile = TFile::Open(mapFilePath);
+    spatMapFile->GetObject(mapObjectName, sMap);
+    cout << "[Info] Loaded Spatial Map " << mapFilePath << endl;
 }
 
 void writeHeaderInfo(const char* fullDirIn, const char * inFilePrefix="output"){
@@ -245,6 +262,7 @@ void DetectionSlicer(const char * dirIn="./Input", const char * inFilePrefix="ou
     //          `dirOut` is the directory where you want to write the output files
     auto start = std::chrono::system_clock::now();
     loadOpticalMap();
+    loadSpatialMap();
     char* fullDirIn = gSystem->ExpandPathName(dirIn);
     char* fullDirOut = gSystem->ExpandPathName(dirOut);
     void* dirp = gSystem->OpenDirectory(fullDirIn);

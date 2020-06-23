@@ -142,12 +142,15 @@ void runToyOpticsFromPoint(Double_t x1, Double_t y1, Int_t nOptics, array<Int_t,
 }
 
 void createToySpatialMap(){
-	Double_t min_r = 0, max_r = 700, rbins = max_r - min_r + 1;
+	Double_t min_r = 0, max_r = 710, rbins = max_r - min_r + 1;
 	Int_t slice_bins = n_slices;
 	Int_t min_scaled_s  = -(n_slices / 2);		// in the map, slice id for 72 slices is in [-36, +35]
 	Int_t max_scaled_s = (n_slices / 2) - 1;
 	Int_t nOpticsPerPoint = 1000;
 	// Create map
+    TString outfile;
+    outfile.Form("ToySpatialMap_%dR_%dSlices_%dops.root", (int)max_r, n_slices, nOpticsPerPoint);
+    TFile * file = new TFile(outfile, "RECREATE");
 	TH2D * map = new TH2D("SpatialMap", "R-Slice Map", rbins, min_r, max_r, slice_bins, min_scaled_s, max_scaled_s);
 	for(Double_t x=min_r; x<=max_r; x += 1){
 		array<Int_t, n_slices> sliced_detections;
@@ -159,9 +162,12 @@ void createToySpatialMap(){
 				Int_t scaled_s = s;
 				if(s >= n_slices/2)
 					scaled_s = - (n_slices - s);
-				map->Fill(x, scaled_s);
+                for(int k=0; k<sliced_detections[s]; k++)
+    				map->Fill(x, scaled_s);
 			}
 		}
 		cout << endl;
 	}
+    map->Write();
+    file->Close();
 }
