@@ -50,26 +50,26 @@ void MGoutput_to_csv(){
     Int_t outFileNumber = 0;          // part id (for out filename)
     std::ofstream out;
     for(Int_t i = 0; i < nentries ; i++){
-	fTree->GetEntry(i);
+	    fTree->GetEntry(i);
         Int_t eventnumber = eventSteps->GetEventID();
         // Check if we have a new event and reached the max num in curr file
-	if((eventnumber > lastEventIDInFile) & (counterEventInFile % maxNumberEventInFile == 0)){
+	    if((eventnumber > lastEventIDInFile) & (counterEventInFile % maxNumberEventInFile == 0)){
             outFileNumber += 1;
             std::cout << "[Info] Creating " << outFileBase + "_part" + outFileNumber + ".csv" << endl;
             if(i > 0)    out.close();
-	    out.open(outFileBase + "_part" + outFileNumber + ".csv");
+	        out.open(outFileBase + "_part" + outFileNumber + ".csv");
             //Print header
             out << "PID,ParentTrackID,energydeposition,kineticenergy,time,x,y,z,";
             out << "px,py,pz,eventnumber,tracknumber,creatorprocess,volumeID,parentnucleusPID";
             out << endl;
             counterEventInFile = 0;
-	}
+	    }
         if(eventnumber > lastEventIDInFile)
             counterEventInFile += 1;
         // Extract primary event
         primaries = eventPrimaries->GetStep(0);     // should be only 1 step with id=0
-	if(primaries == NULL)
-	    continue;
+	    if(primaries == NULL)
+	        continue;
         Int_t pri_pid = primaries->GetParticleID();
         Int_t pri_p_trace_id = primaries->GetParentTrackID();
         Double_t pri_energydeposition = primaries->GetEdep();
@@ -93,7 +93,7 @@ void MGoutput_to_csv(){
         out << eventnumber << "," << pri_tracknumber  << "," << pri_creatorprocess << ",";
         out << pri_sensitivevolID << "," << pri_parentnucleusPID << ",";
         out << endl;
-	// Extract steps
+	    // Extract steps
         for (Int_t j = 0; j < eventSteps->GetNSteps();j++){
             step = eventSteps->GetStep(j);
 
