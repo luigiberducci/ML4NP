@@ -93,7 +93,7 @@ void convertSingleFile(TString inFilePath, TString outFilePath, TString treeName
     simTree->SetBranchAddress("y", &y);
     simTree->SetBranchAddress("z", &z);
     simTree->SetBranchAddress("time", &time);
-    simTree->SetBranchAddress("eventnumber", &eventnumber);    // To avoid overlap of events
+    simTree->SetBranchAddress("inc_eventnumber", &eventnumber);    // To avoid overlap of events
     simTree->SetBranchAddress("energydeposition", &Edep);
     // Create new tree
     cout << "\tProcessing " << inFilePath << "..." << endl;
@@ -135,7 +135,9 @@ void convertSingleFile(TString inFilePath, TString outFilePath, TString treeName
         if(eventnumber > lastReadEventNr){
             kAllEvents++;
             lastReadEventNr = eventnumber;
-        }
+        }else if(eventnumber < lastReadEventNr){
+	    cout << "[Warning] Found a decreasing order of event number: risk of overlapping the entries.\n";
+	}
         if((writeOnlyROIEntries) & (!entryIsInROI)) continue;
         // Compute Detection Efficiency
         if(entryIsInROI) {
@@ -255,7 +257,7 @@ void writeHeaderInfo(const char* fullDirIn, const char * inFilePrefix="output"){
     cout << endl;
 }
 
-void DetectionSlicer(const char * dirIn="./Input", const char * inFilePrefix="output", const char * dirOut="./Output"){
+void DetectionSlicer(const char * dirIn="./Muons", const char * inFilePrefix="output", const char * dirOut="./Output"){
     // Produce the "sliced" detections for each of the specified files.
     // Params:  `dirin` is the path of the input directory
     //          `inFilePrefix` is the prefix of the simulation files (e.g. "output" for output123456789.root)
