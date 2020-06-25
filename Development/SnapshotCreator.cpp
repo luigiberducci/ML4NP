@@ -73,15 +73,18 @@ TString createDatasetFilename(const char * dirOut, TString prefixOut, Double_t n
 }
 
 map<Int_t, Double_t> getFirstTimeOfEvents(TTree *fTree){
-    Int_t eventnumber;
+    Int_t eventnumber, pedetected;
     Double_t time;
     fTree->SetBranchAddress("eventnumber", &eventnumber);
     fTree->SetBranchAddress("time", &time);
+    fTree->SetBranchAddress("pedetected", &pedetected);
     // Collect distinct event numbers
     set<Int_t> eventnumbers;
     map<Int_t, Double_t> map_event_t0;
     for(Long64_t i = 0; i < fTree->GetEntries(); i++){
         fTree->GetEntry(i);
+        if(pedetected <= 0)
+            continue;
 	map<Int_t, Double_t>::iterator it = map_event_t0.find(eventnumber);
 	if (it == map_event_t0.end()){
 		map_event_t0.insert(make_pair(eventnumber, time));
@@ -162,7 +165,7 @@ void write_produced_event_in_outfile(ofstream& outCSV, Int_t prodEventID, vector
     }
 }
 
-void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefixIn, TString prefixOut, Int_t group_events){
+void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefixIn, TString prefixOut, Int_t group_events, Int_t min_npe, Int_t max_npe){
     // Parameters
     const Double_t DeltaT = 10000;    	// integration time (ns) - 4ns is Dt of FlashADC, 10000=10us
     const Int_t nDeltaT = 1;     	// number of successive integrations - e.g. 25 integrations of 4ns are 100ns
@@ -192,7 +195,7 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
         // Open file, get tree and number of sipm
         TFile *f = TFile::Open(fullDirIn + fileName);
         TTree *fTree = (TTree*) f->Get("fTree");
-        TParameter<Int_t> *NSiPM = (TParameter<Int_t>*) f->Get("NSiPM");
+        TParameter<Int_t> *NSiPM = (TParameter<Int_t>*) f->Get("NSlices");
         const int nSiPM = (const int) NSiPM->GetVal();
         cout << "[Debug] Loaded Tree: nentries " << fTree->GetEntries() << endl;
 
@@ -208,16 +211,16 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
         fTree->SetBranchAddress("eventnumber", &eventnumber);
         fTree->SetBranchAddress("energydeposition", &energydeposition);
         fTree->SetBranchAddress("time", &time);
-        vector<Long64_t> SiPM(nSiPM);
+        vector<Int_t> SiPM(nSiPM);
         for(int sipm = 0; sipm < nSiPM; sipm++){
             TString branchName = "Slice";
             branchName += sipm;
             fTree->SetBranchAddress(branchName, &SiPM[sipm]);
         }
 
-	Int_t nevents = map_event_t0.size();
-	Int_t ecounter = 0, last_event = -1, prodevents_counter=0;
-	// Create data struct
+    	Int_t nevents = map_event_t0.size();
+	    Int_t ecounter = 0, last_event = -1, prodevents_counter=0;
+    	// Create data struct
         vector<vector<Long64_t>> TSiPMEvent = newDatasetEventInstance(nSiPM, nDeltaT);
         array<Double_t, nDeltaT> EDepositedInDt = {0};     // cumulative Edep in Lar, over each Dt
         array<Int_t, nDeltaT> PEDetectedInDt = {0};        // cumulative Nr of PE detected, over each Dt
@@ -242,8 +245,15 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
                                 write_header(outCSV, nDeltaT, DeltaT, file_part_id, nSiPM);
                                 cout << "[Info] Event " << prodevents_counter << " - Writing in " << outFile << "...\n";
                             }
-                            write_produced_event_in_outfile(outCSV, prodevents_counter, TSiPMEvent, TSiPMEvent_events,
-                                                            TSiPMEvent_offsets, PEDetectedInDt, EDepositedInDt);
+
+                            // Check filter on Tot NPE
+                            Int_t tot_npe = 0;
+                            for(auto pe : PEDetectedInDt)
+                                tot_npe += pe;
+                            if(tot_npe >= min_npe && tot_npe <= max_npe)
+                                write_produced_event_in_outfile(outCSV, prodevents_counter, TSiPMEvent, TSiPMEvent_events,
+                                                                TSiPMEvent_offsets, PEDetectedInDt, EDepositedInDt);
+
                         }
                         TSiPMEvent = newDatasetEventInstance(nSiPM, nDeltaT);
                         TSiPMEvent_events.clear();
@@ -255,22 +265,22 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
                     TSiPMEvent_offsets.push_back(map_event_offset[eventnumber]);
 	    }
 	    // Debug
-            if(i % 10000 == 0)
-                cout << "\rentry: " << i << "/" << nEntries << std::flush;
+        if(i % 10000 == 0)
+            cout << "\rentry: " << i << "/" << nEntries << std::flush;
 	    Double_t shifted_time = time - map_event_t0[eventnumber] + map_event_offset[eventnumber];
-            int id_time_bin = floor((shifted_time) / DeltaT);
+        int id_time_bin = floor((shifted_time) / DeltaT);
 
-            if(id_time_bin < 0 || id_time_bin >= nDeltaT){
-	        //cout << "[Info] Skipped entry out-of-time. Entry: " << i << ", Event: " << eventnumber << endl;
+        if(id_time_bin < 0 || id_time_bin >= nDeltaT){
+	            //cout << "[Info] Skipped entry out-of-time. Entry: " << i << ", Event: " << eventnumber << endl;
                 skipped_entries++;
                 continue;   // all the others are bigger than time T (eventually overflow)
 	    }
             // Integrate in the time bin
-            for(int sipm = 0; sipm < nSiPM; sipm++){
+        for(int sipm = 0; sipm < nSiPM; sipm++){
             	TSiPMEvent[id_time_bin][sipm] += SiPM[sipm];
                 PEDetectedInDt[id_time_bin] += SiPM[sipm];
-            }
-            EDepositedInDt[id_time_bin] += energydeposition;
+        }
+        EDepositedInDt[id_time_bin] += energydeposition;
         }
         // Close file and tree
         fTree->Delete();
@@ -293,8 +303,8 @@ int main(){
     //const int group_events = 1;	        // Number of events to be grouped in the same snapshot
     // User input
     TString dirIn, dirOut, outputPrefix;
-    Int_t groupEvents;
-    cout << "[Input] What is the INPUT directory? (files `SlicedDeposits_*root`)" << endl;
+    Int_t groupEvents, min_npe, max_npe;
+    cout << "[Input] What is the INPUT directory? (where are the files `SlicedDetections*root`)" << endl;
     cin >> dirIn;
     cout << "[Input] What is the OUTPUT directory?" << endl;
     cin >> dirOut;
@@ -302,6 +312,10 @@ int main(){
     cin >> outputPrefix;
     cout << "[Input] How many events to GROUP for each snapshot?" << endl;
     cin >> groupEvents;
-    produce_time_dataset(dirIn, dirOut, "SlicedDeposits_", outputPrefix, groupEvents);
+    cout << "[Input] Filter event by NPE: Min NPE?" << endl;
+    cin >> min_npe;
+    cout << "[Input] Filter event by NPE: Max NPE?" << endl;
+    cin >> max_npe;
+    produce_time_dataset(dirIn, dirOut, "SlicedDetections", outputPrefix, groupEvents, min_npe, max_npe);
     cout << "[Info] End.\n";
 }

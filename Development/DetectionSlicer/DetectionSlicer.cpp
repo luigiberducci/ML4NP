@@ -23,7 +23,7 @@ const Bool_t writeOnlyROIEntries = false;           // If `true`, all the entrie
 const Bool_t writeOnlyNonZeroDetections = true;     // If `true`, all the entries wt NPE=0 are ignored
 // Parameter for spatial distribution of detections
 const Int_t NSLICES = 72;           // Number of Slices to segment the X-Y plane
-const Int_t OPYIELD = 40;           // Number of Optical Photons per KeV
+const Int_t OPYIELD = 40000;           // Number of Optical Photons per KeV
 const Double_t QUANTUMEFF = 0.40;   // Quantum Efficiency of SiPMs
 const Double_t M = 0, S = 5;        // Mean, StdDev of Gaussian used to sample where PE are detected
 // Optical Map

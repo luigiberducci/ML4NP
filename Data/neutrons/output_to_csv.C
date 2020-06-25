@@ -30,7 +30,7 @@ void output_to_csv(TString inFilepath){
     TTreeReader theReader("fTree", &fileIn);
     // Branches
     TTreeReaderValue<Int_t> pid(theReader, "PID");
-    TTreeReaderValue<Int_t> p_trace_id(theReader, "parentTrackID");
+    TTreeReaderValue<Int_t> p_trace_id(theReader, "ParentTrackID");
     TTreeReaderValue<Double_t> energydeposition(theReader, "energydeposition");
     TTreeReaderValue<Double_t> kineticenergy(theReader, "kineticenergy");
     TTreeReaderValue<Double_t> time(theReader, "time");
@@ -51,6 +51,7 @@ void output_to_csv(TString inFilepath){
     TTreeReaderValue<Int_t> eventnumber(theReader, "eventnumber");
     TTreeReaderValue<Int_t> tracknumber(theReader, "tracknumber");
     TTreeReaderValue<TString> creatorprocess(theReader, "creatorprocess");
+    TTreeReaderValue<Int_t> sensitivevolume(theReader, "SensitiveVolumeID");
     /* TTreeReaderValue<Int_t> parentnucleusPID(theReader, "parentnucleusPID"); */
 
     // Loop over entries
@@ -68,7 +69,7 @@ void output_to_csv(TString inFilepath){
 	    out.open(outFileBase + "_part" + outFileNumber + ".csv");
             //Print header
             out << "PID,ParentTrackID,energydeposition,kineticenergy,time,x,y,z,";
-            out << "eventnumber,tracknumber,creatorprocess,";
+            out << "eventnumber,tracknumber,creatorprocess,sensitiveVolID,";
             //out << "muonx,muony,muonz,muonpx,muonpy,muonpz,muonenergy,";
             out << endl;
 	    }
@@ -77,6 +78,7 @@ void output_to_csv(TString inFilepath){
         out << setprecision(20) <<  *energydeposition << "," << *kineticenergy << "," << *time << ",";
         out << *x << "," << *y << "," << *z << ",";
         out << *eventnumber << "," << *tracknumber  << "," << *creatorprocess << ",";
+        out << *sensitivevolume << ",";
         //out << *muonx << "," << *muony << "," << *muonz << ",";
         //out << *muonpx << "," << *muonpy << "," << *muonpz << ",";
         //out << *muone << ",";
