@@ -3,7 +3,10 @@
 // Purpose: generate a spatial distribution of detections,
 //          starting from Energy deposited in LAr.
 //
-// Usage:
+// Usage (compiled):
+// $>g++ DetectionSlicer.cpp -o DetectionSlicer.exe `root-config --cflags --glibs`
+// $>./DetectionSlicer.exe
+// Usage (interactive):
 // $>root
 // root [0].L DetectionSlicer.cpp
 // root [0]DetectionSlicer("Muons", "output", "Output")
