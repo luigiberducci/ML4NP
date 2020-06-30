@@ -148,9 +148,9 @@ void createToySpatialMap(){
 	Int_t max_scaled_s = (n_slices / 2) - 1;
 	Int_t nOpticsPerPoint = 1000;
 	// Create map
-    TString outfile;
-    outfile.Form("ToySpatialMap_%dR_%dSlices_%dops.root", (int)max_r, n_slices, nOpticsPerPoint);
-    TFile * file = new TFile(outfile, "RECREATE");
+	TString outfile;
+	outfile.Form("ToySpatialMap_%dR_%dSlices_%dops.root", (int)max_r, n_slices, nOpticsPerPoint);
+	TFile * file = new TFile(outfile, "RECREATE");
 	TH2D * map = new TH2D("SpatialMap", "R-Slice Map", rbins, min_r, max_r, slice_bins, min_scaled_s, max_scaled_s);
 	for(Double_t x=min_r; x<=max_r; x += 1){
 		array<Int_t, n_slices> sliced_detections;

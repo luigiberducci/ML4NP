@@ -265,12 +265,12 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
                     TSiPMEvent_offsets.push_back(map_event_offset[eventnumber]);
 	    }
 	    // Debug
-        if(i % 10000 == 0)
-            cout << "\rentry: " << i << "/" << nEntries << std::flush;
+            if(i % 10000 == 0)
+                cout << "\rentry: " << i << "/" << nEntries << std::flush;
 	    Double_t shifted_time = time - map_event_t0[eventnumber] + map_event_offset[eventnumber];
-        int id_time_bin = floor((shifted_time) / DeltaT);
+            int id_time_bin = floor((shifted_time) / DeltaT);
 
-        if(id_time_bin < 0 || id_time_bin >= nDeltaT){
+            if(id_time_bin < 0 || id_time_bin >= nDeltaT){
 	            //cout << "[Info] Skipped entry out-of-time. Entry: " << i << ", Event: " << eventnumber << endl;
                 skipped_entries++;
                 continue;   // all the others are bigger than time T (eventually overflow)
