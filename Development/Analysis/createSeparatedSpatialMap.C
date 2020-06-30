@@ -118,7 +118,7 @@ void runToyOpticsFromPoint(Double_t x1, Double_t y1, Int_t nOptics, TH1D * &prIn
 	Double_t phi = 0;
 	Bool_t debug = false;
 	Bool_t printout = false;
-	Int_t kInnerHits = 0, kOuterHits = 0;
+	Double_t kInnerHits = 0, kOuterHits = 0;
 	while(phi < 2*PI){
 		// Derived
 		Double_t x2=x1+cos(phi), y2=y1+sin(phi);
@@ -204,20 +204,19 @@ void runToyOpticsFromPoint(Double_t x1, Double_t y1, Int_t nOptics, TH1D * &prIn
 	    		}
 		}
 		// Compute the slice of the closest hit
-		Int_t MULT_CLOSE_HIT = 2, MULT_FAR_HIT = 1;
+		Double_t WEIGHT_CLOSE_HIT = 0.97462302;	//Norm of: P(capt close fib) + P(pass close fib)*P(hit Ge) = .54 + .46*.9
+		Double_t WEIGHT_FAR_HIT= .02484;	//Norm of: P(pass close fib)*P(pass Ge)*P(capt far fib) = .46*.1*.54
 		Bool_t close_hit = (close_xf!=0) || (close_yf!=0);
 		Bool_t far_hit = (far_xf!=0) || (far_yf!=0);
 		assert(!far_hit || close_hit);	// far_hit->close_hit
 		if(close_hit==true){
 			double angle = atan2(close_yf, close_xf);
 			if(close_shroud == INNER_SHROUD){
-				for(int mult=0; mult<MULT_CLOSE_HIT; mult++)
-					innerMap->Fill(x1, angle);
-				kInnerHits += MULT_CLOSE_HIT;
+				innerMap->Fill(x1, angle, WEIGHT_CLOSE_HIT);
+				kInnerHits += WEIGHT_CLOSE_HIT;
 			}else if(close_shroud == OUTER_SHROUD){
-				for(int mult=0; mult<MULT_CLOSE_HIT; mult++)
-					outerMap->Fill(x1, angle);
-				kOuterHits += MULT_CLOSE_HIT;
+				outerMap->Fill(x1, angle, WEIGHT_CLOSE_HIT);
+				kOuterHits += WEIGHT_CLOSE_HIT;
 			}else{
 				cout << "ERROR: UKNW SHROUD BUT HIT!!!!\n";
 				exit(-1);
@@ -229,13 +228,11 @@ void runToyOpticsFromPoint(Double_t x1, Double_t y1, Int_t nOptics, TH1D * &prIn
 		if(far_hit==true){
 			double angle = atan2(far_yf, far_xf);
 			if(far_shroud == INNER_SHROUD){
-				for(int mult=0; mult<MULT_FAR_HIT; mult++)
-					innerMap->Fill(x1, angle);
-				kInnerHits += MULT_FAR_HIT;
+				innerMap->Fill(x1, angle, WEIGHT_FAR_HIT);
+				kInnerHits += WEIGHT_FAR_HIT;
 			}else if(far_shroud == OUTER_SHROUD){
-				for(int mult=0; mult<MULT_FAR_HIT; mult++)
-					outerMap->Fill(x1, angle);
-				kOuterHits += MULT_FAR_HIT;
+				outerMap->Fill(x1, angle, WEIGHT_FAR_HIT);
+				kOuterHits += WEIGHT_FAR_HIT;
 			}else{
 				cout << "ERROR: UKNW SHROUD BUT HIT!!!!\n";
 				exit(-1);
@@ -250,7 +247,8 @@ void runToyOpticsFromPoint(Double_t x1, Double_t y1, Int_t nOptics, TH1D * &prIn
 		if(debug)
 			break;
 	}
-	prInnerD->Fill(x1, (Double_t) kInnerHits/(kInnerHits+kOuterHits));
+	if(kInnerHits + kOuterHits > 0)
+		prInnerD->Fill(x1, kInnerHits/(kInnerHits+kOuterHits));
 	// return sliced_detections;
 }
 
