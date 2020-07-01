@@ -45,7 +45,7 @@ using namespace std;
 
 // Flag for output scheme
 const Bool_t writeOnlyROIEntries = false;           // If `true`, all the entries outside the ROI are ignored
-const Bool_t writeOnlyNonZeroDetections = false;     // If `true`, all the entries wt NPE=0 are ignored
+const Bool_t writeOnlyNonZeroDetections = true;     // If `true`, all the entries wt NPE=0 are ignored
 const Bool_t writeOnlyArgonLiquidEntries = false;     // If `true`, all the entries wt material!='ArgonLiquid' are ignored
 // Parameter for spatial distribution of detections
 const Int_t N_INNERSLICES = 12;		// Number of Slices to segment the X-Y plane of Inner Shroud

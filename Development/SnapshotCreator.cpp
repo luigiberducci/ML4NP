@@ -20,6 +20,9 @@
 #define RNDSEED 123456789
 #define PI 3.14159265
 #define INF 999999999999999999999999999999999999999999999
+
+#define ARGONMATERIAL "ArgonLiquid"
+
 // Filename prefixes
 #define CJSimFilePrefix "output"
 #define TmpROIFilePrefix "tmproi"
@@ -72,7 +75,8 @@ TString createDatasetFilename(const char * dirOut, TString prefixOut, Double_t n
     return outFileName;
 }
 
-map<Int_t, Double_t> getFirstTimeOfEvents(TTree *fTree){
+map<Int_t, Double_t> getFirstDetectionInLArPerEvents(TTree * fTree){
+    // Assumption: entries with other material (!=LAr) have NPE==0
     Int_t eventnumber, pedetected;
     Double_t time;
     fTree->SetBranchAddress("eventnumber", &eventnumber);
@@ -124,7 +128,7 @@ TEntryList* getEntryListOfEvent(TTree *fTree, Int_t eventnumber){
     return elist;
 }
 
-void write_header(ofstream& outCSV, Int_t nDeltaT, Double_t DeltaT, Int_t filePartID, Int_t nSlices){
+void write_header(ofstream& outCSV, Int_t nDeltaT, Double_t DeltaT, Int_t filePartID, Int_t nInnerSlices, Int_t nOuterSlices){
     // Write CSV header: number of Dt, Dt in ns, resulting time T
     outCSV << "# File Part: " << filePartID << ", ";
     outCSV << "# N DeltaT: " << nDeltaT << ", ";
@@ -132,17 +136,21 @@ void write_header(ofstream& outCSV, Int_t nDeltaT, Double_t DeltaT, Int_t filePa
     outCSV << "T: " << nDeltaT * DeltaT << "\n";
     outCSV << "# Each event is a sequence of NDeltaT rows.";
     outCSV << "The events are separated by '#'.\n";
-    outCSV << "# Row Format: ID, Slice0, Slice1, ..., SliceN\n";
+    outCSV << "# Row Format: ID, InnerSlice0, ..., InnerSlice(N-1), OuterSlice0, ..., OuterSlice(N-1)\n";
     outCSV << "#\n# Columns:\n";
     outCSV << "eventnumber,energydeposition,pedetected,";
-    for(Int_t i=0; i < nSlices; i++){
-        outCSV << "slice" << i << ",";
+    for(Int_t i=0; i < nInnerSlices; i++){
+        outCSV << "InnerSlice" << i << ",";
+    }
+    for(Int_t i=0; i < nOuterSlices; i++){
+        outCSV << "OuterSlice" << i << ",";
     }
     outCSV << "\n";
 }
 
 template<size_t NDt>
-void write_produced_event_in_outfile(ofstream& outCSV, Int_t prodEventID, vector<vector<Long64_t>> TSiPMEvent,
+void write_produced_event_in_outfile(ofstream& outCSV, Int_t prodEventID, 
+				     vector<vector<Long64_t>> TSiPMEvent_inner, vector<vector<Long64_t>> TSiPMEvent_outer,
                                      vector<Int_t> TSiPMEvent_events, vector<Double_t> TSiPMEvent_offsets,
                                      array<Int_t, NDt> PEDetectedInDt, array<Double_t, NDt> EDepositedInDt){
     // Write output
@@ -153,12 +161,16 @@ void write_produced_event_in_outfile(ofstream& outCSV, Int_t prodEventID, vector
     for(auto offset : TSiPMEvent_offsets)
         outCSV << offset << ",";
     outCSV << endl;
-    for(int iDt=0; iDt < TSiPMEvent.size(); iDt++){
-        auto snapshot = TSiPMEvent[iDt];
+    for(int iDt=0; iDt < TSiPMEvent_inner.size(); iDt++){
+        auto inner_snapshot = TSiPMEvent_inner[iDt];
+        auto outer_snapshot = TSiPMEvent_outer[iDt];
         outCSV << prodEventID << ",";
         outCSV << EDepositedInDt[iDt] << ",";
         outCSV << PEDetectedInDt[iDt] << ",";
-        for(auto sipm : snapshot){
+        for(auto sipm : inner_snapshot){
+            outCSV << sipm << ",";
+        }
+        for(auto sipm : outer_snapshot){
             outCSV << sipm << ",";
         }
         outCSV << endl;
@@ -195,12 +207,14 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
         // Open file, get tree and number of sipm
         TFile *f = TFile::Open(fullDirIn + fileName);
         TTree *fTree = (TTree*) f->Get("fTree");
-        TParameter<Int_t> *NSiPM = (TParameter<Int_t>*) f->Get("NSlices");
-        const int nSiPM = (const int) NSiPM->GetVal();
+        //TParameter<Int_t> *NSiPM = (TParameter<Int_t>*) f->Get("NSlices");
+        //const int nSiPM = (const int) NSiPM->GetVal();
+        const int nInnerSlices = 12;
+        const int nOuterSlices = 20;
         cout << "[Debug] Loaded Tree: nentries " << fTree->GetEntries() << endl;
 
         // Compute time of first deposit in lar, and random offset for event-shifting
-        map<Int_t, Double_t> map_event_t0 = getFirstTimeOfEvents(fTree);
+        map<Int_t, Double_t> map_event_t0 = getFirstDetectionInLArPerEvents(fTree);
         cout << "[Debug] Computed T0 for nevents " << map_event_t0.size() << endl;
         map<Int_t, Double_t> map_event_offset = getRndOffsetPerEvents(map_event_t0, min_shifting, max_shifting);
         cout << "[Debug] Computed Rnd Offsets for nevents " << map_event_offset.size() << endl;
@@ -211,17 +225,24 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
         fTree->SetBranchAddress("eventnumber", &eventnumber);
         fTree->SetBranchAddress("energydeposition", &energydeposition);
         fTree->SetBranchAddress("time", &time);
-        vector<Int_t> SiPM(nSiPM);
-        for(int sipm = 0; sipm < nSiPM; sipm++){
-            TString branchName = "Slice";
+        vector<Int_t> innerSlices(nInnerSlices);
+        vector<Int_t> outerSlices(nOuterSlices);
+        for(int sipm = 0; sipm < nInnerSlices; sipm++){
+            TString branchName = "InnerSlice";
             branchName += sipm;
-            fTree->SetBranchAddress(branchName, &SiPM[sipm]);
+            fTree->SetBranchAddress(branchName, &innerSlices[sipm]);
+        }
+        for(int sipm = 0; sipm < nOuterSlices; sipm++){
+            TString branchName = "OuterSlice";
+            branchName += sipm;
+            fTree->SetBranchAddress(branchName, &outerSlices[sipm]);
         }
 
     	Int_t nevents = map_event_t0.size();
-	    Int_t ecounter = 0, last_event = -1, prodevents_counter=0;
+	Int_t ecounter = 0, last_event = -1, prodevents_counter=0;
     	// Create data struct
-        vector<vector<Long64_t>> TSiPMEvent = newDatasetEventInstance(nSiPM, nDeltaT);
+        vector<vector<Long64_t>> TSiPMEvent_inner = newDatasetEventInstance(nInnerSlices, nDeltaT);
+        vector<vector<Long64_t>> TSiPMEvent_outer = newDatasetEventInstance(nOuterSlices, nDeltaT);
         array<Double_t, nDeltaT> EDepositedInDt = {0};     // cumulative Edep in Lar, over each Dt
         array<Int_t, nDeltaT> PEDetectedInDt = {0};        // cumulative Nr of PE detected, over each Dt
         vector<Int_t> TSiPMEvent_events;
@@ -242,7 +263,7 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
                                 file_part_id++; // Increment the id of file part (part1, part2, ..)
                                 TString outFile(createDatasetFilename(dirOut, prefixOut, nDeltaT, DeltaT, group_events, file_part_id));
                                 outCSV.open(outFile);
-                                write_header(outCSV, nDeltaT, DeltaT, file_part_id, nSiPM);
+                                write_header(outCSV, nDeltaT, DeltaT, file_part_id, nInnerSlices, nOuterSlices);
                                 cout << "[Info] Event " << prodevents_counter << " - Writing in " << outFile << "...\n";
                             }
 
@@ -251,11 +272,12 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
                             for(auto pe : PEDetectedInDt)
                                 tot_npe += pe;
                             if(tot_npe >= min_npe && tot_npe <= max_npe)
-                                write_produced_event_in_outfile(outCSV, prodevents_counter, TSiPMEvent, TSiPMEvent_events,
-                                                                TSiPMEvent_offsets, PEDetectedInDt, EDepositedInDt);
+                                write_produced_event_in_outfile(outCSV, prodevents_counter, TSiPMEvent_inner, TSiPMEvent_outer, 
+								TSiPMEvent_events, TSiPMEvent_offsets, PEDetectedInDt, EDepositedInDt);
 
                         }
-                        TSiPMEvent = newDatasetEventInstance(nSiPM, nDeltaT);
+			TSiPMEvent_inner = newDatasetEventInstance(nInnerSlices, nDeltaT);
+			TSiPMEvent_outer = newDatasetEventInstance(nOuterSlices, nDeltaT);
                         TSiPMEvent_events.clear();
                         TSiPMEvent_offsets.clear();
                         PEDetectedInDt.fill(0);
@@ -276,11 +298,15 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
                 continue;   // all the others are bigger than time T (eventually overflow)
 	    }
             // Integrate in the time bin
-        for(int sipm = 0; sipm < nSiPM; sipm++){
-            	TSiPMEvent[id_time_bin][sipm] += SiPM[sipm];
-                PEDetectedInDt[id_time_bin] += SiPM[sipm];
-        }
-        EDepositedInDt[id_time_bin] += energydeposition;
+	    for(int sipm = 0; sipm < nInnerSlices; sipm++){
+            	TSiPMEvent_inner[id_time_bin][sipm] += innerSlices[sipm];
+                PEDetectedInDt[id_time_bin] += innerSlices[sipm];
+            }
+	    for(int sipm = 0; sipm < nOuterSlices; sipm++){
+            	TSiPMEvent_outer[id_time_bin][sipm] += outerSlices[sipm];
+                PEDetectedInDt[id_time_bin] += outerSlices[sipm];
+            }
+            EDepositedInDt[id_time_bin] += energydeposition;
         }
         // Close file and tree
         fTree->Delete();
