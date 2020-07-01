@@ -153,11 +153,10 @@ void runToyOpticsFromPoint(Double_t x1, Double_t y1, Int_t nOptics, TH1D * &prIn
 				far_shroud = UNKWN_SHROUD;
 			}
 		} else if(pointPlacement==OUTER_REGION){
-			// 3 cases:
+			// 2 cases:
 			pair<Double_t, Double_t> inner_int, outer_int, outer_int2;
 			inner_int = compute_closest_intersection(x1, y1, x2, y2, inner_r);
 			outer_int = compute_closest_intersection(x1, y1, x2, y2, outer_r);
-			outer_int2 = compute_farthest_intersection(x1, y1, x2, y2, outer_r);
 			// The closest from outer region is always the outer shroud
 			close_xf = outer_int.first; 
 			close_yf = outer_int.second;
@@ -167,13 +166,8 @@ void runToyOpticsFromPoint(Double_t x1, Double_t y1, Int_t nOptics, TH1D * &prIn
 				far_xf = inner_int.first; 
 				far_yf = inner_int.second;
 				far_shroud = INNER_SHROUD;
-			// 2) Outer+Outer: intersect twice the outer shroud
-			}else if(outer_int2.first!=close_xf || outer_int2.second!=close_yf){
-				far_xf = outer_int2.first; 
-				far_yf = outer_int2.second;
-				far_shroud = OUTER_SHROUD;
 			}else{
-			// 3) Outer: intersect once the outer shroud
+			// 2) Outer: intersect once the outer shroud
 				far_shroud = UNKWN_SHROUD;
 			}
 		} else {
@@ -255,8 +249,8 @@ void runToyOpticsFromPoint(Double_t x1, Double_t y1, Int_t nOptics, TH1D * &prIn
 void createSeparatedSpatialMap(){
 	Double_t min_r = 0, max_r = 710, rbins = max_r - min_r + 1;
 	Int_t angle_bins = 100;
-	Int_t min_angle = -PI;
-	Int_t max_angle = +PI;
+	Int_t min_angle = -ceil(PI);
+	Int_t max_angle = +ceil(PI);
 	Int_t nOpticsPerPoint = 5000;
 	// Create map
 	TString outfile;

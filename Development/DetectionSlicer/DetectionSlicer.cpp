@@ -185,7 +185,7 @@ void convertSingleFile(TString inFilePath, TString outFilePath, TString treeName
     Int_t nEntries = simTree->GetEntries();
     for(Long64_t i = 0; i < nEntries; i++){
 	if(i % 10000 == 0)
-		cout << "\t\rentry: " << i << "/" << nEntries << std::flush;
+		cout << "\r\tentry: " << i << "/" << nEntries << std::flush;
         simTree->GetEntry(i);
         Bool_t entryIsInROI = isInROI(x, y, z);
         // Debug (Just some event statistics)
@@ -193,7 +193,7 @@ void convertSingleFile(TString inFilePath, TString outFilePath, TString treeName
             kAllEvents++;
             lastReadEventNr = eventnumber;
         }else if(eventnumber < lastReadEventNr){
-	    cout << "[Warning] Found a decreasing order of event number: risk of overlapping the entries.\n";
+	    cout << "\n[Warning] Found a decreasing order of event number: risk of overlapping the entries.\n";
 	}
         if((writeOnlyROIEntries) & (!entryIsInROI)) continue;
         if((writeOnlyArgonLiquidEntries) & (*material!=ARGONMATERIAL)) continue;
@@ -289,12 +289,13 @@ void convertSingleFile(TString inFilePath, TString outFilePath, TString treeName
         }
     }
     // Write output
-    //nInnerSlicesParam->Write();
-    //nOuterSlicesParam->Write();
+    nInnerSlicesParam->Write();
+    nOuterSlicesParam->Write();
     SlicedTree.Write();
     output->Close();
     output->Delete();
     // Debug
+    cout << endl;
     cout << "\t[Info] Number of events in simulation file: " << kAllEvents << " ";
     cout << "(" << kROIEvents << " in ROI, ";
     cout << kArgonEvents << " wt Argon entries)" << endl;
@@ -365,7 +366,7 @@ void writeHeaderInfo(const char* fullDirIn, const char * inFilePrefix="output"){
     else
         arg_printout.Form(arg_template, "DISABLED", "All the entries (even other materials) will be considered");
     if(writeOnlyNonZeroDetections)
-        npe_printout.Form(npe_template, "ENABLED ", "Only the entries wt NPE>0 will be written");
+        npe_printout.Form(npe_template, "ENABLED ", "Only the entries wt NPE>0 will be written (or other materials if enabled)");
     else
         npe_printout.Form(npe_template, "DISABLED", "All the entries (even NPE==0) will be written");
     // Print them out
