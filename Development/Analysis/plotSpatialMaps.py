@@ -38,7 +38,7 @@ for ge_ang in ge_angle_centers[:-1]:
     plt.plot(x + ge_cry_x, y + ge_cry_y, color='red')
 
 x0, y0 = 700, 0
-for a in np.linspace(0, 2*np.pi, 500):
+for a in np.linspace(0, 2*np.pi, 1):
     x1, y1 = x0 + np.cos(a), y0 + np.sin(a)
     m = (y1 - y0) / (x1 - x0)
     x = np.linspace(-300, +700, 300)
