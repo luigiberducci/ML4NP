@@ -10,6 +10,8 @@
 Double_t EPS = 0.00001;
 Double_t INF = 1000000;
 Double_t PI = 3.141592653589793;
+// Coordinate Ge Crystals
+vector<Double_t> geCenters_x, geCenters_y;
 
 pair<Double_t, Double_t> compute_closest_intersection(Double_t x1, Double_t y1, Double_t x2, Double_t y2, Double_t r){
 	// Compute line parameters
@@ -102,6 +104,25 @@ Int_t getPointPlacement(Double_t x, Double_t y, Double_t inner_r, Double_t outer
 	if(dist0 <= outer_r)	// point in (inner_r, outer_r]
 		return 0;
 	return 1;		// point in (outer_r, *)
+}
+
+Int_t initializePositionGeCrystals(Int_t nGeCrystals=14, Double_t radiusGeCrystal=40.0, Double_t rotation_angle=0.22){
+	// Note: rotation_angle has been computed to disalign the Ge crystals from the x-axis
+	// 0.22 is computed for 14 crystals of radius 40
+	Double_t ge_angle = 0;
+	for(Int_t ige=0; ige<nGeCrystals; ige){
+		ge_angle += 2*PI / nGeCrystals;
+		// Compute center of Ge crystal
+		Double_t x0 = ge_radius * cos(ge_angle);
+		Doubel_t y0 = ge_radius * sin(ge_angle);
+		// Rotate it
+		Double_t x = cos(rotation_angle) * x0 - sin(rotation_angle) * y0;
+		Double_t y = sin(rotation_angle) * x0 + cos(rotation_angle) * y0;
+		// Append coordinates
+		geCenters_x.push_back(x);
+		geCenters_y.push_back(y);
+	}
+
 }
 
 // Parameters
@@ -252,6 +273,8 @@ void createSeparatedSpatialMap(){
 	Int_t min_angle = -ceil(PI);
 	Int_t max_angle = +ceil(PI);
 	Int_t nOpticsPerPoint = 5000;
+	// Initialize Ge Crystals
+	initializePositionGeCrystals();
 	// Create map
 	TString outfile;
     	outfile.Form("ToySpatialMap_%dR_%dAngleSlices_%dops.root", (int)max_r, angle_bins, nOpticsPerPoint);
