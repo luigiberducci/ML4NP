@@ -240,7 +240,7 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 	// Loop on angles
 	Double_t phi, theta;
 	Bool_t debug = false;
-	Bool_t printout = true;
+	Bool_t printout = false;
 	Double_t kInnerHits = 0, kOuterHits = 0;
 	// Get coordinate
 	Double_t x1 = radius, y1 = 0;
@@ -404,53 +404,81 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 					cout << "HIT GE";
 	    		}
 		}
-		// Compute the slice of the closest hit
-		Double_t NORM_FACTOR = .54 + .46*.54 + .46*.46*.54;	// consider up to third reachable shroud
-		Double_t WEIGHT_CLOSE_HIT = .54/NORM_FACTOR;	//P(captured closest shroud)
-		Double_t WEIGHT_FAR_HIT= .46*.54/NORM_FACTOR;	//P(not capt closest shroud) P(captured second shroud)
-		Double_t WEIGHT_FARFAR_HIT= .46*.46*.54/NORM_FACTOR;	//P(not capt closest) P(not capt second) P(captured third shroud)
 		Bool_t close_hit = close_shroud != UNKWN_SHROUD;
 		Bool_t far_hit = far_shroud != UNKWN_SHROUD;
 		Bool_t farfar_hit = farfar_shroud != UNKWN_SHROUD;
 		assert(!far_hit || close_hit);	// far_hit->close_hit
 		assert(!farfar_hit || far_hit);	// farfar_hit->far_hit
-		if(close_hit==true){
+		// Compute probabilities of multiple hits
+		Double_t NORM_FACTOR;
+		if(farfar_hit==true)
+			NORM_FACTOR = .54 + .46*.54 + .46*.46*.54;
+		else if(far_hit==true)
+			NORM_FACTOR = .54 + .46*.54;
+		else
+			NORM_FACTOR = .54;
+		Double_t WEIGHT_CLOSE_HIT = .54/NORM_FACTOR;	//P(captured closest shroud)
+		Double_t WEIGHT_FAR_HIT= .46*.54/NORM_FACTOR;	//P(not capt closest shroud) P(captured second shroud)
+		Double_t WEIGHT_FARFAR_HIT= .46*.46*.54/NORM_FACTOR;	//P(not capt closest) P(not capt second) P(captured third shroud)
+		// Sampling the hit
+		Double_t rndChoice = rnd->Rndm();
+		Bool_t fillCloseHit = false, fillFarHit = false, fillFarFarHit = false;
+		if(farfar_hit==true){
+			if(rndChoice > 1 - WEIGHT_FARFAR_HIT)
+				fillFarFarHit = true;
+			else if(rndChoice > 1 - (WEIGHT_FAR_HIT+WEIGHT_FARFAR_HIT))
+				fillFarHit = true;
+			else
+				fillCloseHit = true;
+		}else if(far_hit==true){
+			if(rndChoice > 1 - WEIGHT_FAR_HIT)
+				fillFarHit = true;
+			else
+				fillCloseHit = true;
+		}else{
+			fillCloseHit = true;
+		}
+		// Only one must be true
+		assert(!fillCloseHit || (!fillFarHit && !fillFarFarHit));
+		assert(!fillFarHit || (!fillCloseHit && !fillFarFarHit));
+		assert(!fillFarFarHit || (!fillFarHit && !fillCloseHit));
+		if(fillCloseHit==true){
 			assert(close_xf!=NONCOORD || close_yf!=NONCOORD);
 			double angle = atan2(close_yf, close_xf);
 			if(close_shroud == INNER_SHROUD){
-				innerMap->Fill(x1, angle, WEIGHT_CLOSE_HIT);
-				kInnerHits += WEIGHT_CLOSE_HIT;
+				innerMap->Fill(x1, angle);
+				kInnerHits += 1;
 			}else if(close_shroud == OUTER_SHROUD){
-				outerMap->Fill(x1, angle, WEIGHT_CLOSE_HIT);
-				kOuterHits += WEIGHT_CLOSE_HIT;
+				outerMap->Fill(x1, angle);
+				kOuterHits += 1;
 			}
 			if(printout){
 				cout << "Close Hit on the fibers at: " << close_xf << ", " << close_yf << ", angle: " << angle << "\n";
 			}
 		}
-		if(far_hit==true){
+		if(fillFarHit==true){
 			assert(far_xf!=NONCOORD || far_yf!=NONCOORD);
 			double angle = atan2(far_yf, far_xf);
 			if(far_shroud == INNER_SHROUD){
-				innerMap->Fill(x1, angle, WEIGHT_FAR_HIT);
-				kInnerHits += WEIGHT_FAR_HIT;
+				innerMap->Fill(x1, angle);
+				kInnerHits += 1;
 			}else if(far_shroud == OUTER_SHROUD){
-				outerMap->Fill(x1, angle, WEIGHT_FAR_HIT);
-				kOuterHits += WEIGHT_FAR_HIT;
+				outerMap->Fill(x1, angle);
+				kOuterHits += 1;
 			}
 			if(printout){
 				cout << "Far Hit on the fibers at: " << far_xf << ", " << far_yf << ", angle: " << angle << "\n";
 			}
 		}
-		if(farfar_hit==true){
+		if(fillFarFarHit==true){
 			assert(farfar_xf!=NONCOORD || farfar_yf!=NONCOORD);
 			double angle = atan2(farfar_yf, farfar_xf);
 			if(farfar_shroud == INNER_SHROUD){
-				innerMap->Fill(x1, angle, WEIGHT_FARFAR_HIT);
-				kInnerHits += WEIGHT_FARFAR_HIT;
+				innerMap->Fill(x1, angle);
+				kInnerHits += 1;
 			}else if(farfar_shroud == OUTER_SHROUD){
-				outerMap->Fill(x1, angle, WEIGHT_FARFAR_HIT);
-				kOuterHits += WEIGHT_FARFAR_HIT;
+				outerMap->Fill(x1, angle);
+				kOuterHits += 1;
 			}
 			if(printout){
 				cout << "Far Far Hit on the fibers at: " << farfar_xf << ", " << farfar_yf << ", angle: " << angle << "\n";
@@ -473,12 +501,12 @@ void createFinalSpatialMap(){
 	Int_t angle_bins = 100;
 	Int_t min_angle = -ceil(PI);
 	Int_t max_angle = +ceil(PI);
-	Int_t nOpticsPerPoint = 1000;
+	Int_t nOpticsPerPoint = 100000;
 	// Initialize Ge Crystals
 	initializePositionGeCrystals();
 	// Create map
 	TString outfile;
-    	outfile.Form("ToySpatialMap_%dR_%dAngleSlices_%dops_AngleSampling.root", (int)rbins, angle_bins, nOpticsPerPoint);
+    	outfile.Form("ToySpatialMap_%dR_%dAngleSlices_%dops_HitSampling.root", (int)rbins, angle_bins, nOpticsPerPoint);
     	TFile * file = new TFile(outfile, "RECREATE");
 	TH1D * prInnerD = new TH1D("PrInnerDet", "Pr ~ Fract. Inner/(Inner+Outer) Detections", rbins, min_r, max_r);
 	TH2D * innerMap = new TH2D("InnerMap", "R-Angle Inner Shroud Map", rbins, min_r, max_r, angle_bins, min_angle, max_angle);
