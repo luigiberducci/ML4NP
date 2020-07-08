@@ -496,7 +496,7 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 	// return sliced_detections;
 }
 
-void createFinalSpatialMap(){
+void createSpatialMap_Sampling(){
 	Double_t min_r = 0, max_r = 710, rbins = max_r - min_r + 1;
 	Int_t angle_bins = 100;
 	Int_t min_angle = -ceil(PI);
@@ -524,5 +524,5 @@ void createFinalSpatialMap(){
 }
 
 int main(){
-	createFinalSpatialMap();
+	createSpatialMap_Sampling();
 }

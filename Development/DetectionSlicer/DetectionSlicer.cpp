@@ -43,14 +43,16 @@
 
 using namespace std;
 
+// Flat for input format
+const Bool_t useMaterialBranch = false;              // If `true`, use `material` branch to compute NPE for Argon only
 // Flag for output scheme
 const Bool_t writeOnlyROIEntries = false;           // If `true`, all the entries outside the ROI are ignored
 const Bool_t writeOnlyNonZeroDetections = true;     // If `true`, all the entries wt NPE=0 are ignored
-const Bool_t writeOnlyArgonLiquidEntries = false;     // If `true`, all the entries wt material!='ArgonLiquid' are ignored
+const Bool_t writeOnlyArgonLiquidEntries = true;     // If `true`, all the entries wt material!='ArgonLiquid' are ignored
 // Parameter for spatial distribution of detections
 const Int_t N_INNERSLICES = 12;		// Number of Slices to segment the X-Y plane of Inner Shroud
 const Int_t N_OUTERSLICES = 20;		// Number of Slices to segment the X-Y plane of Outer Shroud
-const Int_t OPYIELD = 40000;		// Number of Optical Photons per KeV
+const Int_t OPYIELD = 40;		// Number of Optical Photons per KeV
 const Double_t QUANTUMEFF = 0.40;	// Quantum Efficiency of SiPMs
 // Optical Map
 TFile * mapFile;
@@ -137,7 +139,8 @@ void convertSingleFile(TString inFilePath, TString outFilePath, TString treeName
     simTree->SetBranchAddress("time", &time);
     simTree->SetBranchAddress("eventnumber", &eventnumber);    // To avoid overlap of events
     simTree->SetBranchAddress("energydeposition", &Edep);
-    simTree->SetBranchAddress("material", &material);
+    if(useMaterialBranch==true)
+        simTree->SetBranchAddress("material", &material);
     // Create new tree
     cout << "\tProcessing " << inFilePath << "...\n";
 
@@ -157,7 +160,6 @@ void convertSingleFile(TString inFilePath, TString outFilePath, TString treeName
     TBranch *bY = SlicedTree.Branch("y", &y, "y/D");
     TBranch *bZ = SlicedTree.Branch("z", &z, "z/D");
     TBranch *bR = SlicedTree.Branch("r", &r, "r/D");
-    TBranch *bM = SlicedTree.Branch("material", &material);
     TBranch *bE = SlicedTree.Branch("energydeposition", &Edep, "energydeposition/D");
     TBranch *bPE = SlicedTree.Branch("pedetected", &pedetected, "pedetected/I");
     TBranch *bDE = SlicedTree.Branch("detectionefficiency", &deteff, "detectionefficiency/D");
@@ -196,8 +198,8 @@ void convertSingleFile(TString inFilePath, TString outFilePath, TString treeName
 	    cout << "\n[Warning] Found a decreasing order of event number: risk of overlapping the entries.\n";
 	}
         if((writeOnlyROIEntries) & (!entryIsInROI)) continue;
-        if((writeOnlyArgonLiquidEntries) & (*material!=ARGONMATERIAL)) continue;
-	if((*material==ARGONMATERIAL) & (eventnumber > lastArgonEvent)){
+        if((useMaterialBranch) && (writeOnlyArgonLiquidEntries) && (*material!=ARGONMATERIAL)) continue;
+	if((useMaterialBranch) && (*material==ARGONMATERIAL) && (eventnumber > lastArgonEvent)){
 	    kArgonEvents++;
 	    lastArgonEvent = eventnumber;
 	}
@@ -211,7 +213,7 @@ void convertSingleFile(TString inFilePath, TString outFilePath, TString treeName
         }else{
             deteff = 0.0;
         }
-	if(*material!=ARGONMATERIAL)
+	if(useMaterialBranch && *material!=ARGONMATERIAL)
             deteff = 0.0;	// force 0 detection for Ge entries
         assert(deteff >= 0.0 & deteff <= 1.0);
         // Compute the radius
@@ -273,7 +275,7 @@ void convertSingleFile(TString inFilePath, TString outFilePath, TString treeName
 	// To allow cut on Ge entries, we write the entries in other materials (!=Argon).
 	// Since Det.Eff. is 0 for other materials, these entries will have 0 PE
 	// If WriteOnlyNonZeroDetecions => (PE>0 or Germanium)
-        if((!writeOnlyNonZeroDetections) || (pedetected > 0 || *material!=ARGONMATERIAL)){
+        if((!writeOnlyNonZeroDetections) || (pedetected > 0 || (useMaterialBranch && *material!=ARGONMATERIAL))){
             SlicedTree.Fill();
             if(eventnumber > lastWrittenEventNr){
                 kWrittenEvents++;
@@ -316,7 +318,7 @@ void loadOpticalMap(const char * mapDir="OpticalMaps",
 }
 
 void loadSpatialMaps(const char * mapDir="OpticalMaps",
-                    const char * mapFileName = "ToySpatialMap_710R_100AngleSlices_5000ops",
+                    const char * mapFileName = "ToySpatialMap_711R_100AngleSlices_100000ops_HitSampling",
                     const char * PrInnerDetObjectName = "PrInnerDet",
                     const char * InnermapObjectName = "InnerMap",
                     const char * OutermapObjectName = "OuterMap"){
@@ -366,7 +368,7 @@ void writeHeaderInfo(const char* fullDirIn, const char * inFilePrefix="output"){
     else
         arg_printout.Form(arg_template, "DISABLED", "All the entries (even other materials) will be considered");
     if(writeOnlyNonZeroDetections)
-        npe_printout.Form(npe_template, "ENABLED ", "Only the entries wt NPE>0 will be written (or other materials if enabled)");
+        npe_printout.Form(npe_template, "ENABLED ", "Only the entries wt NPE>0 will be written (or other materials, if enabled)");
     else
         npe_printout.Form(npe_template, "DISABLED", "All the entries (even NPE==0) will be written");
     // Print them out
