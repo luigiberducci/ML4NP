@@ -23,6 +23,13 @@
 #define OUTER_SHROUD 1
 #define UNKWN_SHROUD -1
 
+#define TOPZ 	   +845
+#define BOTTOMZ    -845
+#define TOPZ_GE    +425
+#define BOTTOMZ_GE -425
+#define LEFT_GE    -(235-40)
+#define RIGHT_GE   -(235-40)
+
 #define NONCOORD -666666666
 
 using namespace std;
@@ -161,20 +168,17 @@ pair<Double_t, Double_t> getHitOnGermanium(Double_t x1, Double_t y1, Double_t x2
 	if(!enableGe)
 		return closest_ge_int;	// If Ge disable, return always NoHit!
 	// We aim to average the result over a slice, then sample the rotation angle
-	Double_t geRotationAngle = -maxGeRotationAngle + rnd->Rndm() * 2 * maxGeRotationAngle;
 	for(int i=0; i<geCenters_x.size(); i++){
-		Double_t gex = cos(geRotationAngle) * geCenters_x[i] - sin(geRotationAngle) * geCenters_y[i];
-		Double_t gey = sin(geRotationAngle) * geCenters_x[i] + cos(geRotationAngle) * geCenters_y[i];
-		// Shift the point coordinates
-		Double_t xx1 = x1 - gex;
-		Double_t yy1 = y1 - gey;
-		Double_t xx2 = x2 - gex;
-		Double_t yy2 = y2 - gey;
+		// Shift the point coordinates w.r.t. the center of crystal
+		Double_t xx1 = x1 - geCenters_x[i];
+		Double_t yy1 = y1 - geCenters_y[i];
+		Double_t xx2 = x2 - geCenters_x[i];
+		Double_t yy2 = y2 - geCenters_y[i];
 		// Once Ge has been centered, check hit
 		pair<Double_t, Double_t> ge_int = compute_closest_intersection(xx1, yy1, xx2, yy2, geRadius);
 		if(ge_int.first!=NONCOORD || ge_int.second!=NONCOORD){
-			ge_int.first += gex;
-			ge_int.second += gey;
+			ge_int.first += geCenters_x[i];
+			ge_int.second += geCenters_y[i];
 			Double_t new_distance = sqrt((x1-ge_int.first)*(x1-ge_int.first) + (y1-ge_int.second)*(y1-ge_int.second));
 			if(new_distance < distance){
 				distance = new_distance;
@@ -186,10 +190,39 @@ pair<Double_t, Double_t> getHitOnGermanium(Double_t x1, Double_t y1, Double_t x2
 	return closest_ge_int;
 }
 
+Double_t getAngleBtw3Points(Double_t cx, Double_t cy, Double_t ax, Double_t ay, Double_t bx, Double_t by){
+	// Compute the angle between point A, B w.r.t. C (center)
+	Double_t angle_a = atan2(ay - cy, ax - cx);
+	if(angle_a < 0)
+		angle_a += 2 * PI;
+	Double_t angle_b = atan2(by - cy, bx - cx);
+	if(angle_b < 0)
+		angle_b += 2 * PI;
+	return angle_b - angle_a;
+}
+
 Double_t computeProbTrajectoryToGermanium(Double_t radius, Double_t z){
-	//TODO:
 	//Idea: given a position in r, z return the ratio of angle hitting the Ge over the angle hitting the shroud
-	return 1.0;
+	// Points: A highest intersection with ROI
+	// 	   B highest intersection Ge region 
+	// 	   C lowest intersection Ge region
+	// 	   D lowest intersection with ROI
+	Double_t bx, cx;
+	Double_t ax = RIGHT_GE, ay = TOPZ, by = TOPZ_GE;
+	Double_t cy = BOTTOMZ_GE, dx = RIGHT_GE, dy = BOTTOMZ;
+	if(z > TOPZ_GE){
+		bx = LEFT_GE;
+		cx = RIGHT_GE;
+	}else if(z > BOTTOMZ_GE){
+		bx = RIGHT_GE;
+		cx = RIGHT_GE;
+	}else{
+		bx = RIGHT_GE;
+		cx = LEFT_GE;
+	}
+	Double_t angle_ad = getAngleBtw3Points(radius, z, ax, ay, dx, dy);
+	Double_t angle_bc = getAngleBtw3Points(radius, z, bx, by, cx, cy);
+	return angle_bc/angle_ad;
 }
 
 // Parameters
@@ -197,8 +230,8 @@ const Int_t n_inner_slices = 100;
 const Int_t n_outer_slices = 100;
 const Double_t inner_theta_slice = 2 * PI / n_inner_slices;    // angle for each slice
 const Double_t outer_theta_slice = 2 * PI / n_outer_slices;    // angle for each slice
-void runToyOpticsFromPoint(Double_t x1, Double_t y1, Int_t nOptics, TH1D * &prInnerD, TH2D* &innerMap, TH2D* &outerMap){
-	cout << "Running at R=" << x1 << endl;
+void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2D* &innerMap, TH2D* &outerMap){
+	cout << "Running at R=" << radius << endl;
 	// Fiber radius
 	Double_t inner_r = 175, outer_r = 295;	// mm
 	Double_t delta_phi = PI / nOptics;
@@ -207,10 +240,14 @@ void runToyOpticsFromPoint(Double_t x1, Double_t y1, Int_t nOptics, TH1D * &prIn
 	// Loop on angles
 	Double_t phi, theta;
 	Bool_t debug = false;
-	Bool_t printout = false;
+	Bool_t printout = true;
 	Double_t kInnerHits = 0, kOuterHits = 0;
+	// Get coordinate
+	Double_t x1 = radius, y1 = 0;
 	while(nOptics>0){
-		nOptics--;
+		// Get random y1
+		Double_t phi1 = -maxGeRotationAngle + rnd->Rndm() * 2 * maxGeRotationAngle;
+		y1 = x1 * sin(phi1);
 		// Get random angle
 		phi = rnd->Rndm() * 2 * PI;
 		theta = rnd->Rndm() * 2 * PI;
@@ -421,9 +458,10 @@ void runToyOpticsFromPoint(Double_t x1, Double_t y1, Int_t nOptics, TH1D * &prIn
 		}
 		if(printout)
 			cout << endl;
-		phi += delta_phi;
 		if(debug)
 			break;
+		if(close_hit)
+			nOptics--;	// decrement n optics only when hit a shroud
 	}
 	if(kInnerHits + kOuterHits > 0)
 		prInnerD->Fill(x1, kInnerHits/(kInnerHits+kOuterHits));
@@ -435,7 +473,7 @@ void createFinalSpatialMap(){
 	Int_t angle_bins = 100;
 	Int_t min_angle = -ceil(PI);
 	Int_t max_angle = +ceil(PI);
-	Int_t nOpticsPerPoint = 5000;
+	Int_t nOpticsPerPoint = 1000;
 	// Initialize Ge Crystals
 	initializePositionGeCrystals();
 	// Create map
@@ -449,7 +487,7 @@ void createFinalSpatialMap(){
 		array<Int_t, n_inner_slices> inner_sliced_detections;
 		array<Int_t, n_outer_slices> outer_sliced_detections;
 		Int_t innerDetections=0, totDetections=0;
-		runToyOpticsFromPoint(x, 0., nOpticsPerPoint, prInnerD, innerMap, outerMap);
+		runToyOpticsFromPoint(x, nOpticsPerPoint, prInnerD, innerMap, outerMap);
 	}
     	prInnerD->Write();
     	innerMap->Write();
