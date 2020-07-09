@@ -27,8 +27,8 @@
 #define BOTTOMZ    -845
 #define TOPZ_GE    +425
 #define BOTTOMZ_GE -425
-#define LEFT_GE    -(235-40)
-#define RIGHT_GE   -(235-40)
+#define LEFT_GE    -(235+40)
+#define RIGHT_GE   235+40
 
 #define NONCOORD -666666666
 
@@ -46,7 +46,7 @@ Double_t maxGeRotationAngle = 0.22;	// the rot angle ranges 0,.22
 Double_t geRadius = 40.0;
 std::vector<Double_t> geCenters_x, geCenters_y;
 
-pair<Double_t, Double_t> compute_closest_intersection(Double_t x1, Double_t y1, Double_t x2, Double_t y2, Double_t r){
+pair<Double_t, Double_t> compute_closest_intersection(Double_t x1, Double_t y1, Double_t x2, Double_t y2, Double_t r, Double_t maxDistance=INF){
 	if(sqrt(x1*x1 + y1*y1) == r)	// check if point stay on circle boundary
 		return make_pair(x1, y1);
 	// Compute line parameters
@@ -67,16 +67,18 @@ pair<Double_t, Double_t> compute_closest_intersection(Double_t x1, Double_t y1, 
 	    bx = xf - b * mult;
 	    ay = yf - a * mult;
 	    by = yf + a * mult;
+	    // Consider only interesection within maxDistance
+	    double distance_a = sqrt((ax-x1)*(ax-x1) + (ay-y1)*(ay-y1));
+	    double distance_b = sqrt((bx-x1)*(bx-x1) + (by-y1)*(by-y1));
 	    // assert: a valid intersection has the same direction(both x, y)
 	    // if 2 intersections can be 1) only 1 in the same direction, 2) both of them (line from outside)
 	    double distance = INF;
-	    if((x1-x2)*(x1-ax)>=0 && (y1-y2)*(y1-ay)>=0){
+	    if((x1-x2)*(x1-ax)>=0 && (y1-y2)*(y1-ay)>=0 && (distance_a<=maxDistance)){
 	    	xf = ax;	    
 	    	yf = ay;
 	        distance = sqrt((x1-ax)*(x1-ax) + (y1-ay)*(y1-ay));	
 	    }
-	    double distance_b = sqrt((x1-bx)*(x1-bx) + (y1-by)*(y1-by));
-	    if((x1-x2)*(x1-bx)>=0 && (y1-y2)*(y1-by)>=0 && (distance_b<distance)){
+	    if((x1-x2)*(x1-bx)>=0 && (y1-y2)*(y1-by)>=0 && (distance_b<=maxDistance) && (distance_b<distance)){
 			xf = bx;	    
 			yf = by;
 			distance = distance_b;
@@ -85,12 +87,18 @@ pair<Double_t, Double_t> compute_closest_intersection(Double_t x1, Double_t y1, 
 	    	xf = NONCOORD;		// 2 intersection but none of them has the right direction
 	    	yf = NONCOORD;
 	    }
-	} // else only 1 (xf, yf)
+	}else{ // else only 1 (xf, yf)
+	    double distance = sqrt((xf-x1)*(xf-x1) + (yf-y1)*(yf-y1));
+	    if(distance > maxDistance){	// the only intersection if farther than limit
+	    	xf = NONCOORD;
+	    	yf = NONCOORD;
+	    }
+	}
 	pair<Double_t, Double_t> intersection(make_pair(xf, yf));
 	return intersection;
 }
 
-pair<Double_t, Double_t> compute_farthest_intersection(Double_t x1, Double_t y1, Double_t x2, Double_t y2, Double_t r){
+pair<Double_t, Double_t> compute_farthest_intersection(Double_t x1, Double_t y1, Double_t x2, Double_t y2, Double_t r, Double_t maxDistance=INF){
 	// Compute line parameters
 	Double_t a = y1 - y2;
 	Double_t b = x2 - x1;
@@ -109,16 +117,18 @@ pair<Double_t, Double_t> compute_farthest_intersection(Double_t x1, Double_t y1,
 	    bx = xf - b * mult;
 	    ay = yf - a * mult;
 	    by = yf + a * mult;
+	    // Maintain only point close enough
+	    double distance_a = sqrt((x1-ax)*(x1-ax) + (y1-ay)*(y1-ay));
+	    double distance_b = sqrt((x1-bx)*(x1-bx) + (y1-by)*(y1-by));
 	    // assert: a valid intersection has the same direction(both x, y)
 	    // if 2 intersections can be 1) only 1 in the same direction, 2) both of them (line from outside)
 	    double distance = -INF;
-	    if((x1-x2)*(x1-ax)>=0 && (y1-y2)*(y1-ay)>=0){
+	    if((x1-x2)*(x1-ax)>=0 && (y1-y2)*(y1-ay)>=0 && distance_a<=maxDistance){
 	    	xf = ax;	    
 	    	yf = ay;
 	        distance = sqrt((x1-ax)*(x1-ax) + (y1-ay)*(y1-ay));	
 	    }
-	    double distance_b = sqrt((x1-bx)*(x1-bx) + (y1-by)*(y1-by));
-	    if((x1-x2)*(x1-bx)>=0 && (y1-y2)*(y1-by)>=0 && (distance_b>distance)){
+	    if((x1-x2)*(x1-bx)>=0 && (y1-y2)*(y1-by)>=0 && distance_b<=maxDistance && distance_b>distance){
 			xf = bx;	    
 			yf = by;
 			distance = distance_b;
@@ -127,7 +137,13 @@ pair<Double_t, Double_t> compute_farthest_intersection(Double_t x1, Double_t y1,
 	    	xf = NONCOORD;		// 2 intersection but none of them has the right direction
 	    	yf = NONCOORD;
 	    }
-	} // else only 1 (xf, yf)
+	}else{ // else only 1 (xf, yf)
+	    double distance = sqrt((xf-x1)*(xf-x1) + (yf-y1)*(yf-y1));
+	    if(distance > maxDistance){	// the only intersection if farther than limit
+	    	xf = NONCOORD;
+	    	yf = NONCOORD;
+	    }
+	}
 	pair<Double_t, Double_t> intersection(make_pair(xf, yf));
 	return intersection;
 }
@@ -225,6 +241,21 @@ Double_t computeProbTrajectoryToGermanium(Double_t radius, Double_t z){
 	return angle_bc/angle_ad;
 }
 
+Bool_t checkIfEnableGe(Double_t x1, Double_t y1, Double_t z1, Double_t x2, Double_t y2, Double_t z2){
+	// Compute intersection with the Ge volume, meaning the cylinder that includes the Ge Strings
+	Double_t ge_r = 235 + 40;
+	pair<Double_t, Double_t> ge_int = compute_closest_intersection(x1, y1, x2, y2, ge_r);
+	if(ge_int.first==NONCOORD || ge_int.second==NONCOORD)
+		return false;	// No interesection at all, no difference between the two maps
+	// If there is an interesection, look at where it occurs in Z
+	// Use parametrization of line: line = P + t D, where P is a vector (point), D direction vector
+	Double_t t = (ge_int.first - x1) / (x2-x1);	// From param: t = (x-x1)/dx
+	Double_t z_int = z1 + t * (z2-z1);   		// z = z1 + t * dz, where z1 point, dz direction vector
+	if(BOTTOMZ_GE < z_int && z_int < TOPZ_GE)
+		return true;	// Interesection with Z in [BOTTOMGE,TOPGE], enable crystals
+	return false;		// Intersection with Z outside the Ge volume, disable crystals
+}
+
 // Parameters
 const Int_t n_inner_slices = 100;
 const Int_t n_outer_slices = 100;
@@ -234,7 +265,6 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 	cout << "Running at R=" << radius << endl;
 	// Fiber radius
 	Double_t inner_r = 175, outer_r = 295;	// mm
-	Double_t delta_phi = PI / nOptics;
 	// Flag sample Ge
 	Bool_t enableGe = true;
 	// Loop on angles
@@ -243,21 +273,28 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 	Bool_t printout = false;
 	Double_t kInnerHits = 0, kOuterHits = 0;
 	// Get coordinate
-	Double_t x1 = radius, y1 = 0;
+	Double_t x1 = radius, y1 = 0, z1 = 0;
 	while(nOptics>0){
-		// Get random y1
+		// Get random point (y1 according to angle shifting, z1 random) 
 		Double_t phi1 = -maxGeRotationAngle + rnd->Rndm() * 2 * maxGeRotationAngle;
 		y1 = x1 * sin(phi1);
+		z1 = BOTTOMZ + rnd->Rndm() * TOPZ;
+		// Compute Pr of Ge Region
+		Double_t prTrajectoryToGe = computeProbTrajectoryToGermanium(x1, z1);
 		// Get random angle
+		theta = rnd->Rndm() * PI;
 		phi = rnd->Rndm() * 2 * PI;
-		theta = rnd->Rndm() * 2 * PI;
 		// Derived
 		Double_t x2 = x1 + 1 * sin(theta) * cos(phi);
 		Double_t y2 = y1 + 1 * sin(theta) * sin(phi);
-		// Compute Pr of Ge Region
-		Double_t z1 = -845 + rnd->Rndm() * 845;
-		Double_t prTrajectoryToGe = computeProbTrajectoryToGermanium(x1, z1);
-		enableGe = (rnd->Rndm() <= prTrajectoryToGe);
+		Double_t z2 = z1 + 1 * cos(theta);
+		Double_t lenTrajectory = 0;	// distance to hit the plane delimited by upper or lower boundary
+		if(theta <= PI/2){
+			lenTrajectory = (TOPZ-z1)/cos(theta);	    // trajectory towards top Z
+		}else{
+			lenTrajectory = (BOTTOMZ-z1)/cos(theta);    // trajectory towards bottom Z
+		}
+		enableGe = checkIfEnableGe(x1, y1, z1, x2, y2, z2);
 		// Note: Ignore z
 		if(printout){
 			cout << "X1: " << x1 << ", ";
@@ -265,7 +302,8 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 			cout << "Phi: " << phi << ": ";
 			cout << "X2: " << x2 << ", ";
 			cout << "Y2: " << y2 << ", ";
-			cout << "Hitting Ge: " << enableGe << "\n";
+			cout << "Hitting Ge: " << enableGe << ", ";
+			cout << "Max Len Traj: " << lenTrajectory << "\n";
 		}
 		
 		Int_t pointPlacement = getPointPlacement(x1, y1, inner_r, outer_r);
@@ -276,38 +314,40 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 		if(pointPlacement==INNER_REGION){
 			// 2 cases:
 			pair<Double_t, Double_t> inner_int, outer_int, ge_int;
-			inner_int = compute_closest_intersection(x1, y1, x2, y2, inner_r);
+			inner_int = compute_closest_intersection(x1, y1, x2, y2, inner_r, lenTrajectory);
 			ge_int = getHitOnGermanium(x1, y1, x2, y2, enableGe);
-			outer_int = compute_closest_intersection(x1, y1, x2, y2, outer_r);
+			outer_int = compute_closest_intersection(x1, y1, x2, y2, outer_r, lenTrajectory);
 			// The closest from inner region is always the inner shroud
 			// Not hit on inner shroud is not possible
-			close_xf = inner_int.first;	    
-			close_yf = inner_int.second;
-			close_shroud = INNER_SHROUD;
-			if(printout)
-				cout << "HIT INNER ";
-			// 1) Inner+Outer: intersect both the shrouds, no Ge hit in the middle
-			if((outer_int.first!=NONCOORD || outer_int.second!=NONCOORD) ){
-				if(ge_int.first==NONCOORD && ge_int.second==NONCOORD){
-					far_xf = outer_int.first; 
-					far_yf = outer_int.second;
-					far_shroud = OUTER_SHROUD;
-					if(printout)
-						cout << "2 HIT OUTER ";
+			if(inner_int.first!=NONCOORD || inner_int.second!=NONCOORD){
+				close_xf = inner_int.first;	    
+				close_yf = inner_int.second;
+				close_shroud = INNER_SHROUD;
+				if(printout)
+					cout << "HIT INNER ";
+				// 1) Inner+Outer: intersect both the shrouds, no Ge hit in the middle
+				if((outer_int.first!=NONCOORD || outer_int.second!=NONCOORD) ){
+					if(ge_int.first==NONCOORD && ge_int.second==NONCOORD){
+						far_xf = outer_int.first; 
+						far_yf = outer_int.second;
+						far_shroud = OUTER_SHROUD;
+						if(printout)
+							cout << "2 HIT OUTER ";
+					}
+				}else{
+				// 2) Inner: intersect once the inner shroud (the outer is not reached or hit Ge before)
+					far_shroud = UNKWN_SHROUD;
 				}
-			}else{
-			// 2) Inner: intersect once the inner shroud (the outer is not reached or hit Ge before)
-				far_shroud = UNKWN_SHROUD;
 			}
 		} else if(pointPlacement==OUTER_REGION){
 			// assert: if hit shroud, always the outer first
 			// assert: if 2nd hit, check if no Ge before
 			// 2 cases:
 			pair<Double_t, Double_t> inner_int, inner_int2, outer_int, outer_int2, ge_int;
-			inner_int = compute_closest_intersection(x1, y1, x2, y2, inner_r);
+			inner_int = compute_closest_intersection(x1, y1, x2, y2, inner_r, lenTrajectory);
 			ge_int = getHitOnGermanium(x1, y1, x2, y2, enableGe);
-			outer_int = compute_closest_intersection(x1, y1, x2, y2, outer_r);
-			outer_int2 = compute_farthest_intersection(x1, y1, x2, y2, outer_r);
+			outer_int = compute_closest_intersection(x1, y1, x2, y2, outer_r, lenTrajectory);
+			outer_int2 = compute_farthest_intersection(x1, y1, x2, y2, outer_r, lenTrajectory);
 			// The closest from outer region is always the outer shroud
 			if(outer_int.first!=NONCOORD || outer_int.second!=NONCOORD){	// Discard no hit on outer shroud
 				close_xf = outer_int.first; 
@@ -336,7 +376,7 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 					if(printout)
 						cout << "2 HIT INNER ";
 					// Check 2nd hit on the inner shroud
-					inner_int2 = compute_farthest_intersection(x1, y1, x2, y2, inner_r);
+					inner_int2 = compute_farthest_intersection(x1, y1, x2, y2, inner_r, lenTrajectory);
 					if((inner_int2.first!=NONCOORD || inner_int2.second!=NONCOORD) &&
 					   (x1-x2)*(x1-inner_int2.first)>=0 && (y1-y2)*(y1-inner_int2.second)>=0){
 						farfar_xf = inner_int2.first; 
@@ -359,9 +399,9 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 		} else {
 			// MIDDLE REGION
 			pair<Double_t, Double_t> inner_int, outer_int, ge_int;
-			inner_int = compute_closest_intersection(x1, y1, x2, y2, inner_r);
+			inner_int = compute_closest_intersection(x1, y1, x2, y2, inner_r, lenTrajectory);
 			ge_int = getHitOnGermanium(x1, y1, x2, y2, enableGe);
-			outer_int = compute_closest_intersection(x1, y1, x2, y2, outer_r);
+			outer_int = compute_closest_intersection(x1, y1, x2, y2, outer_r, lenTrajectory);
 			// assert: only 1 of the intersections (inner, outer, ge) has the same direction and min distance
 			Double_t distance = INF;
 			// assert: only 1 eventual hit in the outer shroud
@@ -385,7 +425,7 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 				if(printout)
 					cout << "HIT INNER";
 				// Check 2nd hit on the inner shroud
-				inner_int = compute_farthest_intersection(x1, y1, x2, y2, inner_r);
+				inner_int = compute_farthest_intersection(x1, y1, x2, y2, inner_r, lenTrajectory);
 				if((inner_int.first!=NONCOORD || inner_int.second!=NONCOORD) &&
 				   (x1-x2)*(x1-inner_int.first)>=0 && (y1-y2)*(y1-inner_int.second)>=0){
 					far_xf = inner_int.first; 
@@ -435,7 +475,7 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 				fillFarHit = true;
 			else
 				fillCloseHit = true;
-		}else{
+		}else if(close_hit==true){
 			fillCloseHit = true;
 		}
 		// Only one must be true
@@ -486,10 +526,11 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 		}
 		if(printout)
 			cout << endl;
+		if(close_hit){
+			nOptics--;	// decrement n optics only when hit a shroud
+		}
 		if(debug)
 			break;
-		if(close_hit)
-			nOptics--;	// decrement n optics only when hit a shroud
 	}
 	if(kInnerHits + kOuterHits > 0)
 		prInnerD->Fill(x1, kInnerHits/(kInnerHits+kOuterHits));
@@ -501,12 +542,12 @@ void createSpatialMap_Sampling(){
 	Int_t angle_bins = 100;
 	Int_t min_angle = -ceil(PI);
 	Int_t max_angle = +ceil(PI);
-	Int_t nOpticsPerPoint = 100000;
+	Int_t nOpticsPerPoint = 1000000;
 	// Initialize Ge Crystals
 	initializePositionGeCrystals();
 	// Create map
 	TString outfile;
-    	outfile.Form("ToySpatialMap_%dR_%dAngleSlices_%dops_HitSampling.root", (int)rbins, angle_bins, nOpticsPerPoint);
+    	outfile.Form("ToySpatialMap_%dR_%dAngleSlices_%dops_ShortHitSampling.root", (int)rbins, angle_bins, nOpticsPerPoint);
     	TFile * file = new TFile(outfile, "RECREATE");
 	TH1D * prInnerD = new TH1D("PrInnerDet", "Pr ~ Fract. Inner/(Inner+Outer) Detections", rbins, min_r, max_r);
 	TH2D * innerMap = new TH2D("InnerMap", "R-Angle Inner Shroud Map", rbins, min_r, max_r, angle_bins, min_angle, max_angle);

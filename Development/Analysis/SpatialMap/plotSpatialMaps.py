@@ -55,6 +55,23 @@ plt.xlim(-300, +750)
 plt.ylim(-300, +750)
 plt.show()
 
+plt.cla()
+ax, ay = 100, -10
+bx, by = 0, 845
+plt.hlines(y=845, xmin=-300, xmax=+300)
+plt.vlines(x=100, ymin=-10, ymax=+845)
+plt.scatter(ax, ay)
+plt.scatter(bx, by)
+plt.plot([0, 100], [845, -10])
+alpha = np.arctan2(100, 855)
+print(np.rad2deg(alpha))
+len_ipo = (845 - (-10)) / np.cos(alpha)
+print("Len Ipotenusa: {}".format(len_ipo))
+print("Double Check: {}".format(((bx - ax)**2 + (by - ay)**2)**.5))
+plt.xlim(-845, 845)
+plt.ylim(-845, 845)
+plt.show()
+
 exit(0)
 
 def get_angle_three_points(center, a, b):
