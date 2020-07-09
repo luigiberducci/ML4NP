@@ -19,7 +19,7 @@
 // Params
 #define RNDSEED 123456789
 #define PI 3.14159265
-#define INF 999999999999999999999999999999999999999999999
+#define INF 999999999
 
 #define ARGONMATERIAL "ArgonLiquid"
 
@@ -340,8 +340,10 @@ int main(){
     cin >> groupEvents;
     cout << "[Input] Filter event by NPE: Min NPE?" << endl;
     cin >> min_npe;
-    cout << "[Input] Filter event by NPE: Max NPE?" << endl;
+    cout << "[Input] Filter event by NPE: Max NPE? (-1 to unbounded)" << endl;
     cin >> max_npe;
+    if(max_npe<0)
+	    max_npe = INF;
     produce_time_dataset(dirIn, dirOut, "SlicedDetections", outputPrefix, groupEvents, min_npe, max_npe);
     cout << "[Info] End.\n";
 }
