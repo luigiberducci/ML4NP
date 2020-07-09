@@ -132,7 +132,7 @@ void convertSingleFile(TString inFilePath, TString outFilePath, TString treeName
     // Connect branches
     Double_t x, y, z, r, time, Edep;
     Int_t eventnumber;
-    std::string * material = 0;
+    std::string * material = "null";
     simTree->SetBranchAddress("x", &x);
     simTree->SetBranchAddress("y", &y);
     simTree->SetBranchAddress("z", &z);
@@ -160,6 +160,7 @@ void convertSingleFile(TString inFilePath, TString outFilePath, TString treeName
     TBranch *bY = SlicedTree.Branch("y", &y, "y/D");
     TBranch *bZ = SlicedTree.Branch("z", &z, "z/D");
     TBranch *bR = SlicedTree.Branch("r", &r, "r/D");
+    TBranch *bM = SlicedTree.Branch("material", &material);
     TBranch *bE = SlicedTree.Branch("energydeposition", &Edep, "energydeposition/D");
     TBranch *bPE = SlicedTree.Branch("pedetected", &pedetected, "pedetected/I");
     TBranch *bDE = SlicedTree.Branch("detectionefficiency", &deteff, "detectionefficiency/D");
