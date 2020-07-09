@@ -266,7 +266,7 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 	// Fiber radius
 	Double_t inner_r = 175, outer_r = 295;	// mm
 	// Flag sample Ge
-	Bool_t enableGe = true;
+	Bool_t enableGe;
 	// Loop on angles
 	Double_t phi, theta;
 	Bool_t debug = false;
@@ -274,6 +274,7 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 	Double_t kInnerHits = 0, kOuterHits = 0;
 	// Get coordinate
 	Double_t x1 = radius, y1 = 0, z1 = 0;
+	Int_t kGe = 0;
 	while(nOptics>0){
 		// Get random point (y1 according to angle shifting, z1 random) 
 		Double_t phi1 = -maxGeRotationAngle + rnd->Rndm() * 2 * maxGeRotationAngle;
@@ -294,6 +295,7 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 		}else{
 			lenTrajectory = (BOTTOMZ-z1)/cos(theta);    // trajectory towards bottom Z
 		}
+		assert(lenTrajectory>=0);
 		enableGe = checkIfEnableGe(x1, y1, z1, x2, y2, z2);
 		// Note: Ignore z
 		if(printout){
@@ -528,12 +530,15 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 			cout << endl;
 		if(close_hit){
 			nOptics--;	// decrement n optics only when hit a shroud
+			if(enableGe)
+				kGe++;
 		}
 		if(debug)
 			break;
 	}
 	if(kInnerHits + kOuterHits > 0)
 		prInnerD->Fill(x1, kInnerHits/(kInnerHits+kOuterHits));
+	cout << "DEBUG - Enabled Ge: " << kGe << endl; 
 	// return sliced_detections;
 }
 
@@ -542,7 +547,7 @@ void createSpatialMap_Sampling(){
 	Int_t angle_bins = 100;
 	Int_t min_angle = -ceil(PI);
 	Int_t max_angle = +ceil(PI);
-	Int_t nOpticsPerPoint = 1000000;
+	Int_t nOpticsPerPoint = 10000;
 	// Initialize Ge Crystals
 	initializePositionGeCrystals();
 	// Create map
