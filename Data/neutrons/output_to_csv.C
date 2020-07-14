@@ -37,26 +37,28 @@ void output_to_csv(TString inFilepath){
     TTreeReaderValue<Double_t> x(theReader, "x");
     TTreeReaderValue<Double_t> y(theReader, "y");
     TTreeReaderValue<Double_t> z(theReader, "z");
-    /* TTreeReaderValue<Double_t> px(theReader, "px"); */
-    /* TTreeReaderValue<Double_t> py(theReader, "py"); */
-    /* TTreeReaderValue<Double_t> pz(theReader, "pz"); */
-    //TTreeReaderValue<Double_t> muonx(theReader, "muonx");
-    //TTreeReaderValue<Double_t> muony(theReader, "muony");
-    //TTreeReaderValue<Double_t> muonz(theReader, "muonz");
-    //TTreeReaderValue<Double_t> muonpx(theReader, "muonpx");
-    //TTreeReaderValue<Double_t> muonpy(theReader, "muonpy");
-    //TTreeReaderValue<Double_t> muonpz(theReader, "muonpz");
-    //TTreeReaderValue<Double_t> muone(theReader, "muonenergy");
-    /* TTreeReaderValue<Double_t> detectionefficiency(theReader, "detectionefficiency"); */
+    /*TTreeReaderValue<Double_t> px(theReader, "px");
+    TTreeReaderValue<Double_t> py(theReader, "py");
+    TTreeReaderValue<Double_t> pz(theReader, "pz");
+    TTreeReaderValue<Double_t> muonx(theReader, "muonx");
+    TTreeReaderValue<Double_t> muony(theReader, "muony");
+    TTreeReaderValue<Double_t> muonz(theReader, "muonz");
+    TTreeReaderValue<Double_t> muonpx(theReader, "muonpx");
+    TTreeReaderValue<Double_t> muonpy(theReader, "muonpy");
+    TTreeReaderValue<Double_t> muonpz(theReader, "muonpz");
+    TTreeReaderValue<Double_t> muone(theReader, "muonenergy");*/
+    //TTreeReaderValue<Double_t> detectionefficiency(theReader, "detectionefficiency");
     TTreeReaderValue<Int_t> eventnumber(theReader, "eventnumber");
     TTreeReaderValue<Int_t> tracknumber(theReader, "tracknumber");
     TTreeReaderValue<TString> creatorprocess(theReader, "creatorprocess");
-    TTreeReaderValue<Int_t> sensitivevolume(theReader, "SensitiveVolumeID");
-    /* TTreeReaderValue<Int_t> parentnucleusPID(theReader, "parentnucleusPID"); */
+    TTreeReaderValue<Int_t> sensitivevolid(theReader, "SensitiveVolumeID");
+    //TTreeReaderValue<string> material(theReader, "material");
+    /*TTreeReaderValue<Int_t> detectornumber(theReader, "detectornumber");
+    TTreeReaderValue<Int_t> parentnucleusPID(theReader, "parentnucleusPID");*/
 
     // Loop over entries
     int i=0;
-    Int_t maxNumberEntriesInFile = 5000000;
+    Int_t maxNumberEntriesInFile = 2500000;
     Int_t outFileNumber = 0;          // part id (for out filename)
     std::ofstream out;
     while(theReader.Next()){
@@ -69,8 +71,8 @@ void output_to_csv(TString inFilepath){
 	    out.open(outFileBase + "_part" + outFileNumber + ".csv");
             //Print header
             out << "PID,ParentTrackID,energydeposition,kineticenergy,time,x,y,z,";
-            out << "eventnumber,tracknumber,creatorprocess,sensitiveVolID,";
-            //out << "muonx,muony,muonz,muonpx,muonpy,muonpz,muonenergy,";
+            out << "eventnumber,tracknumber,creatorprocess,";
+            out << "SensitiveVolID";
             out << endl;
 	    }
         i++;
@@ -78,10 +80,7 @@ void output_to_csv(TString inFilepath){
         out << setprecision(20) <<  *energydeposition << "," << *kineticenergy << "," << *time << ",";
         out << *x << "," << *y << "," << *z << ",";
         out << *eventnumber << "," << *tracknumber  << "," << *creatorprocess << ",";
-        out << *sensitivevolume << ",";
-        //out << *muonx << "," << *muony << "," << *muonz << ",";
-        //out << *muonpx << "," << *muonpy << "," << *muonpz << ",";
-        //out << *muone << ",";
+        out << *sensitivevolid;
         out << endl;
    }
    std::cout << "\n[Info] Written " << i << " entries in " << outFileNumber << " files.\n";
