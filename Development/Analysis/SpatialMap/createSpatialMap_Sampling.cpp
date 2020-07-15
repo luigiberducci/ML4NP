@@ -10,6 +10,7 @@
 #include <TH3D.h>
 #include <TROOT.h>
 #include <TSystem.h>
+#include <TMath.h>
 #include <TRandom.h>
 #include <array>
 #include <vector>
@@ -39,6 +40,9 @@ Double_t INF = 1000000;
 Double_t PI = 3.141592653589793;
 // Rnd Generator
 TRandom * rnd = new TRandom();
+// Attenuation Lenght, Geometric Coverage
+Double_t attenuationLen = 1000;    //mm Attenuation LengDouble_t attenuationLen = 10    //mm
+Double_t shroudCapturePr = .54;    //fiber coverage over real cylinder surface
 // Coordinate Ge Crystals
 Int_t nGeCrystals = 14;
 Double_t radiusGeCrystals = 235.0;
@@ -256,6 +260,10 @@ Bool_t checkIfEnableGe(Double_t x1, Double_t y1, Double_t z1, Double_t x2, Doubl
 	return false;		// Intersection with Z outside the Ge volume, disable crystals
 }
 
+Double_t getPointDistance(Double_t x1, Double_t y1, Double_t x2, Double_t y2){
+    return sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2));
+}
+
 // Parameters
 const Int_t n_inner_slices = 100;
 const Int_t n_outer_slices = 100;
@@ -273,12 +281,13 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 	Bool_t printout = false;
 	Double_t kInnerHits = 0, kOuterHits = 0;
 	// Get coordinate
-	Double_t x1 = radius, y1 = 0, z1 = 0;
+	Double_t x1 = 0, y1 = 0, z1 = 0;
 	Int_t kGe = 0;
 	while(nOptics>0){
 		// Get random point (y1 according to angle shifting, z1 random) 
 		Double_t phi1 = -maxGeRotationAngle + rnd->Rndm() * 2 * maxGeRotationAngle;
-		y1 = x1 * sin(phi1);
+		x1 = radius * cos(phi1);
+		y1 = radius * sin(phi1);
 		z1 = BOTTOMZ + rnd->Rndm() * TOPZ;
 		// Compute Pr of Ge Region
 		Double_t prTrajectoryToGe = computeProbTrajectoryToGermanium(x1, z1);
@@ -452,16 +461,14 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 		assert(!far_hit || close_hit);	// far_hit->close_hit
 		assert(!farfar_hit || far_hit);	// farfar_hit->far_hit
 		// Compute probabilities of multiple hits
-		Double_t NORM_FACTOR;
+		Double_t NORM_FACTOR = shroudCapturePr * TMath::Exp(- getPointDistance(x1, y1, close_xf, close_yf) / attenuationLen);
+		if(far_hit==true)
+			NORM_FACTOR += (1-shroudCapturePr) * shroudCapturePr * TMath::Exp(- getPointDistance(x1, y1, far_xf, far_yf) / attenuationLen);
 		if(farfar_hit==true)
-			NORM_FACTOR = .54 + .46*.54 + .46*.46*.54;
-		else if(far_hit==true)
-			NORM_FACTOR = .54 + .46*.54;
-		else
-			NORM_FACTOR = .54;
-		Double_t WEIGHT_CLOSE_HIT = .54/NORM_FACTOR;	//P(captured closest shroud)
-		Double_t WEIGHT_FAR_HIT= .46*.54/NORM_FACTOR;	//P(not capt closest shroud) P(captured second shroud)
-		Double_t WEIGHT_FARFAR_HIT= .46*.46*.54/NORM_FACTOR;	//P(not capt closest) P(not capt second) P(captured third shroud)
+			NORM_FACTOR += (1-shroudCapturePr) * (1-shroudCapturePr) * shroudCapturePr * TMath::Exp(- getPointDistance(x1, y1, farfar_xf, farfar_yf) / attenuationLen);
+		Double_t WEIGHT_CLOSE_HIT = (shroudCapturePr * TMath::Exp(- getPointDistance(x1, y1, close_xf, close_yf) / attenuationLen)) / NORM_FACTOR;	//P(captured closest shroud)
+		Double_t WEIGHT_FAR_HIT = ((1-shroudCapturePr) * shroudCapturePr * TMath::Exp(- getPointDistance(x1, y1, far_xf, far_yf) / attenuationLen)) / NORM_FACTOR;	//P(captured second shroud)
+		Double_t WEIGHT_FARFAR_HIT = ((1-shroudCapturePr) * (1-shroudCapturePr) * shroudCapturePr * TMath::Exp(- getPointDistance(x1, y1, farfar_xf, farfar_yf) / attenuationLen)) / NORM_FACTOR;	//P(captured third shroud)
 		// Sampling the hit
 		Double_t rndChoice = rnd->Rndm();
 		Bool_t fillCloseHit = false, fillFarHit = false, fillFarFarHit = false;
@@ -488,10 +495,10 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 			assert(close_xf!=NONCOORD || close_yf!=NONCOORD);
 			double angle = atan2(close_yf, close_xf);
 			if(close_shroud == INNER_SHROUD){
-				innerMap->Fill(x1, angle);
+				innerMap->Fill(radius, angle);
 				kInnerHits += 1;
 			}else if(close_shroud == OUTER_SHROUD){
-				outerMap->Fill(x1, angle);
+				outerMap->Fill(radius, angle);
 				kOuterHits += 1;
 			}
 			if(printout){
@@ -502,10 +509,10 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 			assert(far_xf!=NONCOORD || far_yf!=NONCOORD);
 			double angle = atan2(far_yf, far_xf);
 			if(far_shroud == INNER_SHROUD){
-				innerMap->Fill(x1, angle);
+				innerMap->Fill(radius, angle);
 				kInnerHits += 1;
 			}else if(far_shroud == OUTER_SHROUD){
-				outerMap->Fill(x1, angle);
+				outerMap->Fill(radius, angle);
 				kOuterHits += 1;
 			}
 			if(printout){
@@ -516,10 +523,10 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 			assert(farfar_xf!=NONCOORD || farfar_yf!=NONCOORD);
 			double angle = atan2(farfar_yf, farfar_xf);
 			if(farfar_shroud == INNER_SHROUD){
-				innerMap->Fill(x1, angle);
+				innerMap->Fill(radius, angle);
 				kInnerHits += 1;
 			}else if(farfar_shroud == OUTER_SHROUD){
-				outerMap->Fill(x1, angle);
+				outerMap->Fill(radius, angle);
 				kOuterHits += 1;
 			}
 			if(printout){
@@ -537,13 +544,13 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 			break;
 	}
 	if(kInnerHits + kOuterHits > 0)
-		prInnerD->Fill(x1, kInnerHits/(kInnerHits+kOuterHits));
-	cout << "DEBUG - Enabled Ge: " << kGe << endl; 
+		prInnerD->Fill(radius, kInnerHits/(kInnerHits+kOuterHits));
+	//cout << "DEBUG - Enabled Ge: " << kGe << endl; 
 	// return sliced_detections;
 }
 
 void createSpatialMap_Sampling(){
-	Double_t min_r = 0, max_r = 710, rbins = max_r - min_r + 1;
+	Double_t min_r = 0, max_r = 710, rbins = max_r - min_r;
 	Int_t angle_bins = 100;
 	Int_t min_angle = -ceil(PI);
 	Int_t max_angle = +ceil(PI);
