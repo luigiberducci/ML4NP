@@ -60,8 +60,8 @@ struct Point{
 		y = yy;
 		z = zz;
 	}
-	bool isNotDefined(){
-		return x==NONCOORD && y==NONCOORD && z==NONCOORD;
+	bool isDefined(){
+		return x!=NONCOORD || y!=NONCOORD || z!=NONCOORD;
 	}
 	bool checkSameDirection(Double_t x2, Double_t y2, struct Point p){
 		return (x-x2)*(x-p.x)>=0 && (y-y2)*(y-p.y)>=0;
@@ -78,8 +78,8 @@ struct HitPoint{
 		point.z = zz;
 		shroud = shroud;
 	}
-	bool isNotDefined(){
-		return point.isNotDefined() || shroud==UNKWN_SHROUD;
+	bool isDefined(){
+		return shroud!=UNKWN_SHROUD;
 	}
 }
 
@@ -294,7 +294,7 @@ Bool_t checkIfEnableGe(Double_t x1, Double_t y1, Double_t z1, Double_t x2, Doubl
 	// Compute intersection with the Ge volume, meaning the cylinder that includes the Ge Strings
 	Double_t ge_r = RIGHT_GE;
 	struct Point geHit = compute_closest_intersection(x1, y1, x2, y2, ge_r);
-	if(geHit.isNotDefined())
+	if(!geHit.isDefined())
 		return false;	// No interesection at all, no difference between the two maps
 	// If there is an interesection, look at where it occurs in Z
 	// Use parametrization of line: line = P + t D, where P is a vector (point), D direction vector
@@ -370,14 +370,14 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 			outerHit = compute_closest_intersection(prodPoint.x, prodPoint.y, x2, y2, outer_r, lenTrajectory);
 			// The closest from inner region is always the inner shroud
 			// No hit on inner shroud is possible ONLY because of short lenTrajectory
-			if(innerHit.isNotDefined()==false){
+			if(innerHit.isDefined()){
 				closeHit.point.x = innerHit.x;
 				closeHit.point.y = innerHit.y;
 				closeHit.shroud = INNER_SHROUD;
 				if(printout)
 					cout << "HIT INNER ";
 				// 1) Inner+Outer: intersect both the shrouds, no Ge hit in the middle
-				if(outerHit1.isNotDefined()==false && geHit.isNotDefined()==true){
+				if(outerHit1.isDefined() && !geHit.isDefined()){
 					farHit.point.x = outerHit.x; 
 					farHit.point.y = outerHit.y;
 					farHit.shroud = OUTER_SHROUD;
@@ -399,7 +399,7 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 			outerHit1 = compute_closest_intersection(prodPoint.x, prodPoint.y, x2, y2, outer_r, lenTrajectory);
 			outerHit2 = compute_farthest_intersection(prodPoint.x, prodPoint.y, x2, y2, outer_r, lenTrajectory);
 			// The closest from outer region is always the outer shroud
-			if(outerHit.isNotDefined()==false){	// Discard no hit on outer shroud
+			if(outerHit.isDefined()){	// Discard no hit on outer shroud
 				closeHit.point.x = outerHit.x; 
 				closeHit.point.y = outerHit.y;
 				closeHit.point.z = OUTER_SHROUD;
@@ -407,7 +407,7 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 					cout << "1 HIT OUTER ";
 				// The 2nd hit is the one at min dist from the point
 				Double_t distance = INF;
-				if(outerHit2.isNotDefined()==false && prodPoint.checkSameDirection(x2, y2, outerHit2)){
+				if(outerHit2.isDefined() && prodPoint.checkSameDirection(x2, y2, outerHit2)){
 					farHit.point.x = outerHit2.x;	    
 					farHit.point.y = outerHit2.y;
 					farHit.shroud = OUTER_SHROUD;
@@ -416,7 +416,7 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 					distance = getPointDistance(prodPoint, farHit.point);
 				}
 				Double_t distance_in = getPointDistance(prodPoint, innerHit);
-				if(innerHit.isNotDefined()==false && prodPoint.checkSameDirection(x2, y2, innerHit) && distance_in<distance){
+				if(innerHit.isDefined() && prodPoint.checkSameDirection(x2, y2, innerHit) && distance_in<distance){
 					farHit.point.x = innerHit.x; 
 					farHit.point.y = innerHit.y;
 					farHit.shroud = INNER_SHROUD;
@@ -424,7 +424,7 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 						cout << "2 HIT INNER ";
 					// Check 2nd hit on the inner shroud
 					innerHit2 = compute_farthest_intersection(prodPoint.x, prodPoint.y, x2, y2, inner_r, lenTrajectory);
-					if(innerHit2.isNotDefined()==false && prodPoint.checkSameDirection(x2, y2, innerHit2)){
+					if(innerHit2.isDefined() && prodPoint.checkSameDirection(x2, y2, innerHit2)){
 						farfarHit.x = innerHit2.x; 
 						farfarHit.y = innerHit2.y;
 						farfarHit.shroud = INNER_SHROUD;
@@ -432,7 +432,7 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 					distance = distance_in;
 				}
 				Double_t distance_ge = getPointDistance(prodPoint, geHit);
-				if(geHit.isNotDefined()==false && prodPoint.checkSameDirection(x2, y2, geHit) && distance_ge<distance){
+				if(geHit.isDefined() && prodPoint.checkSameDirection(x2, y2, geHit) && distance_ge<distance){
 					// if hit ge, always after the outer shroud, then keep close_shroud
 					farHit.shroud = UNKWN_SHROUD;
 					farfarHit.shroud = UNKWN_SHROUD;
@@ -449,7 +449,7 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 			// assert: only 1 of the intersections (inner, outer, ge) has the same direction and min distance
 			Double_t distance = INF;
 			// assert: only 1 eventual hit in the outer shroud
-			if(outerHit.isNotDefined()==false && prodPoint.checkSameDirection(x2, y2, outerHit)){
+			if(outerHit.isDefined() && prodPoint.checkSameDirection(x2, y2, outerHit)){
 			    	closeHit.point.x = outerHit.x;	    
     				closeHit.point.y = outerHit.y;
     				closeHit.shroud = OUTER_SHROUD;
@@ -459,7 +459,7 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 	    		}
 			Double_t distance_in = getPointDistance(prodPoint, innerHit);
 			// assert: at most 2 hits in the inner shroud
-			if(innerHit.isNotDefined()==false && prodPoint.checkSameDirection(x2, y2, innerHit) && distance_in<distance){
+			if(innerHit.isDefined() && prodPoint.checkSameDirection(x2, y2, innerHit) && distance_in<distance){
 			    	closeHit.point.x = innerHit.x; 
 	    			closeHit.point.y = innerHit.y;
     				closeHit.shroud = INNER_SHROUD;
@@ -467,7 +467,7 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 					cout << "HIT INNER";
 				// Check 2nd hit on the inner shroud
 				innerHit = compute_farthest_intersection(prodPoint.x, prodPoint.y, x2, y2, inner_r, lenTrajectory);
-				if(innerHit.isNotDefined()==false && prodPoint.checkSameDirection(x2, y2, innerHit)){
+				if(innerHit.isDefined() && prodPoint.checkSameDirection(x2, y2, innerHit)){
 					farHit.point.x = innerHit.x; 
 					farHit.point.y = innerHit.y;
 					farHit.shroud = INNER_SHROUD;
@@ -475,7 +475,7 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 				distance = distance_in;
 	    		}
 			Double_t distance_ge = getPointDistance(prodPoint, geHit);
-			if(geHit.isNotDefined()==false && prodPoint.checkSameDirection(x2, y2, geHit) && distance_ge<distance){
+			if(geHit.isDefined() && prodPoint.checkSameDirection(x2, y2, geHit) && distance_ge<distance){
     				closeHit.shroud = UNKWN_SHROUD;	// reset eventual other hits recorded
     				farHit.shroud = UNKWN_SHROUD;
 				if(printout)
