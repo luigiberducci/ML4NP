@@ -31,6 +31,9 @@
 #define LEFT_GE    -(235+40)
 #define RIGHT_GE   235+40
 
+#define INNER_SHROUD_RADIUS 175
+#define OUTER_SHROUD_RADIUS 295
+
 #define NONCOORD -666666666
 
 using namespace std;
@@ -46,41 +49,39 @@ Double_t shroudCapturePr = .54;    //fiber coverage over real cylinder surface
 // Coordinate Ge Crystals
 Int_t nGeCrystals = 14;
 Double_t radiusGeCrystals = 235.0;
-Double_t maxGeRotationAngle = 0.22;	// the rot angle ranges 0,.22
+Double_t shiftAngleForXYSampling = 0.22;	// the rot angle ranges 0,.22
 Double_t geRadius = 40.0;
 std::vector<Double_t> geCenters_x, geCenters_y;
 
 // Struct 3d point
 struct Point{
 	Double_t x;
-        Double_t y;
+	Double_t y;
 	Double_t z;
-	Point(Double_t xx=NONCOORD, Double_t yy=NONCOORD, Double_t zz=NONCOORD){
+	Int_t shroud;   // Optional
+	Point(Double_t xx=NONCOORD, Double_t yy=NONCOORD, Double_t zz=NONCOORD, Int_t shrd=UNKWN_SHROUD){
 		x = xx;
 		y = yy;
 		z = zz;
+		shroud = shrd;
+	}
+	void reset(){
+		x = NONCOORD;
+		y = NONCOORD;
+		z = NONCOORD;
+		shroud = UNKWN_SHROUD;
 	}
 	bool isDefined(){
-		return x!=NONCOORD || y!=NONCOORD || z!=NONCOORD;
+		return (x!=NONCOORD || y!=NONCOORD || z!=NONCOORD);
 	}
 	bool checkSameDirection(Double_t x2, Double_t y2, struct Point p){
 		return (x-x2)*(x-p.x)>=0 && (y-y2)*(y-p.y)>=0;
 	}
-	
 }
 
-struct HitPoint{
-	struct Point point;	
-	int shroud;
-	HitPoint(Double_t xx=NONCOORD, Double_t yy=NONCOORD, Double_t zz=NONCOORD, Int_t shroud=UNKWN_SHROUD){
-		point.x = xx;
-		point.y = yy;
-		point.z = zz;
-		shroud = shroud;
-	}
-	bool isDefined(){
-		return shroud!=UNKWN_SHROUD;
-	}
+struct Line {
+    struct Point point1;
+    struct Point point2;
 }
 
 struct Point compute_closest_intersection(Double_t x1, Double_t y1, Double_t x2, Double_t y2, Double_t r, Double_t maxDistance=INF){
@@ -225,34 +226,36 @@ Int_t initializePositionGeCrystals(){
 	}
 }
 
-struct Point getHitOnGermanium(Double_t x1, Double_t y1, Double_t x2, Double_t y2, Bool_t enableGe){
+struct Point getHitOnGermanium(struct Point point, Double_t x2, Double_t y2, Bool_t enableGe){
 	// Idea: the method to find an intersection  assumes the circle to be centered in 0,0
 	// We can translate the points to have each Ge crystal centered
 	Double_t distance = INF;
-	struct Point closest_ge_int = Point(NONCOORD, NONCOORD, NONCOORD);
+	struct Point closestGeHit = Point(NONCOORD, NONCOORD, NONCOORD);
 	if(!enableGe)
-		return closest_ge_int;	// If Ge disable, return always NoHit!
+		return closestGeHit;	// If Ge disable, return always NoHit!
 	// We aim to average the result over a slice, then sample the rotation angle
 	for(int i=0; i<geCenters_x.size(); i++){
 		// Shift the point coordinates w.r.t. the center of crystal
-		Double_t xx1 = x1 - geCenters_x[i];
-		Double_t yy1 = y1 - geCenters_y[i];
+		Double_t xx1 = point.x - geCenters_x[i];
+		Double_t yy1 = point.y - geCenters_y[i];
 		Double_t xx2 = x2 - geCenters_x[i];
 		Double_t yy2 = y2 - geCenters_y[i];
 		// Once Ge has been centered, check hit
 		struct Point geHit = compute_closest_intersection(xx1, yy1, xx2, yy2, geRadius);
-		if(geHit.x!=NONCOORD || geHit.y!=NONCOORD){
+		if(geHit.isDefined()){
 			geHit.x += geCenters_x[i];
-			geHit.y += geCenters_y[i];
-			Double_t new_distance = sqrt((x1-geHit.x)*(x1-geHit.x) + (y1-geHit.y)*(y1-geHit.y));
+            geHit.y += geCenters_y[i];
+            // Note: no shift on Z
+			Double_t new_distance = getPointDistance(point, geHit);
 			if(new_distance < distance){
 				distance = new_distance;
-				closest_ge_int.x = geHit.x;
-				closest_ge_int.y= geHit.y;
-			}	
+                closestGeHit.x = geHit.x;
+                closestGeHit.y = geHit.y;
+                closestGeHit.z = geHit.z;
+			}
 		}
 	}
-	return closest_ge_int;
+	return closestGeHit;
 }
 
 Double_t getAngleBtw3Points(Double_t cx, Double_t cy, Double_t ax, Double_t ay, Double_t bx, Double_t by){
@@ -264,30 +267,6 @@ Double_t getAngleBtw3Points(Double_t cx, Double_t cy, Double_t ax, Double_t ay, 
 	if(angle_b < 0)
 		angle_b += 2 * PI;
 	return angle_b - angle_a;
-}
-
-Double_t computeProbTrajectoryToGermanium(Double_t radius, Double_t z){
-	//Idea: given a position in r, z return the ratio of angle hitting the Ge over the angle hitting the shroud
-	// Points: A highest intersection with ROI
-	// 	   B highest intersection Ge region 
-	// 	   C lowest intersection Ge region
-	// 	   D lowest intersection with ROI
-	Double_t bx, cx;
-	Double_t ax = RIGHT_GE, ay = TOPZ, by = TOPZ_GE;
-	Double_t cy = BOTTOMZ_GE, dx = RIGHT_GE, dy = BOTTOMZ;
-	if(z > TOPZ_GE){
-		bx = LEFT_GE;
-		cx = RIGHT_GE;
-	}else if(z > BOTTOMZ_GE){
-		bx = RIGHT_GE;
-		cx = RIGHT_GE;
-	}else{
-		bx = RIGHT_GE;
-		cx = LEFT_GE;
-	}
-	Double_t angle_ad = getAngleBtw3Points(radius, z, ax, ay, dx, dy);
-	Double_t angle_bc = getAngleBtw3Points(radius, z, bx, by, cx, cy);
-	return angle_bc/angle_ad;
 }
 
 Bool_t checkIfEnableGe(Double_t x1, Double_t y1, Double_t z1, Double_t x2, Double_t y2, Double_t z2){
@@ -309,11 +288,113 @@ Double_t getPointDistance(struct Point a, struct Point b){
     return sqrt((a.x-b.x)*(a.x-b.x) + (a.y-b.y)*(a.y-b.y) + (a.z-b.z)*(a.z-b.z));
 }
 
+struct Point generateRandomPointInAngleSlice(Double_t radius, Double_t angleShift=shiftAngleForXYSampling,
+                                             Double_t minZ=BOTTOMZ, Double_t maxZ=TOPZ){
+    Double_t phi = minShiftAngle + rnd->Rndm() * (maxShiftAngle - minShiftAngle);  // Random Phi in angle
+    struct Point point = Point(radius * cos(phi),
+                               radius * sin(phi),
+                               minZ + rnd->Rndm() * maxZ); // Random Z position
+    return point;
+}
+
+pair<struct Point, Double_t> generatePhotonEmission(struct Point point){
+    Double_t theta = rnd->Rndm() * PI;
+    Double_t phi = rnd->Rndm() * 2 * PI;
+    // generate direction point
+    struct Point dirPoint = Point(point.x + 1 * sin(theta) * cos(phi),
+                                  point.y + 1 * sin(theta) * sin(phi),
+                                  point.z + 1 * cos(theta);
+    Double_t lenTrajectory = 0;	// distance to hit the plane delimited by upper or lower boundary
+    if(theta <= PI/2){
+        lenTrajectory = (TOPZ-z1)/cos(theta);	    // trajectory towards top Z
+    }else{
+        lenTrajectory = (BOTTOMZ-z1)/cos(theta);    // trajectory towards bottom Z
+    }
+    return make_pair(dirPoint, lenTrajectory)
+}
+
+vector<struct Point> checkHitFromInnerRegion(struct Point prodPoint, struct Point dirPoint, Double_t lenTrajectory, Bool_t enableGe){
+    // Possible scenarios: inner hit, outer hit.
+    vector<struct Point> hits;
+    struct Point innerHit, outerHit, geHit;
+    innerHit = compute_closest_intersection(prodPoint.x, prodPoint.y, dirPoint.x, dirPoint.y, INNER_SHROUD_RADIUS, lenTrajectory);
+    geHit = getHitOnGermanium(prodPoint.x, prodPoint.y, dirPoint.x, y2, enableGe);
+    outerHit = compute_closest_intersection(prodPoint.x, prodPoint.y, dirPoint.x, dirPoint.y, OUTER_SHROUD_RADIUS, lenTrajectory);
+    // The closest from inner region is always the inner shroud
+    if(innerHit.isDefined()){    // No hit on inner shroud is possible ONLY because of short lenTrajectory
+        innerHit.shroud = INNER_SHROUD;
+        hits.push_back(innerHit);
+        // 1) Inner+Outer: intersect both the shrouds, no Ge hit in the middle
+        if(outerHit.isDefined() && !geHit.isDefined()){
+            outerHit.shroud = OUTER_SHROUD;
+            hits.push_back(outerHit);
+        }
+    }
+    // Debug
+    if(printout){
+        if(hits.size()==1)
+            cout << "HIT INNER SHROUD";
+        if(hits.size()==2)
+            cout << "HIT INNER + OUTER SHROUDS";
+    }
+    return hits;
+}
+
+vector<struct Point> checkHitFromOuterRegion(struct Point prodPoint, struct Point dirPoint, Double_t lenTrajectory, Bool_t enableGe){
+    // Possible scenarios: outer hit (close), inner hit (close), inner hit (far), outer hit(far).
+    // assert: if hit shroud, always the outer first
+    // assert: if 2nd hit, check if no Ge before
+    // 2 cases:
+    struct Point innerHit1, innerHit2, outerHit1, outerHit2, geHit;
+    outerHit1 = compute_closest_intersection(prodPoint.x, prodPoint.y, dirPoint.x, dirPoint.y, OUTER_SHROUD_RADIUS, lenTrajectory);
+    innerHit1 = compute_closest_intersection(prodPoint.x, prodPoint.y, dirPoint.x, dirPoint.y, INNER_SHROUD_RADIUS, lenTrajectory);
+    geHit = getHitOnGermanium(prodPoint.x, prodPoint.y, dirPoint.x, dirPoint.y, enableGe);
+    innerHit2 = compute_closest_intersection(prodPoint.x, prodPoint.y, dirPoint.x, dirPoint.y, INNER_SHROUD_RADIUS, lenTrajectory);
+    outerHit2 = compute_farthest_intersection(prodPoint.x, prodPoint.y, dirPoint.x, dirPoint.y, OUTER_SHROUD_RADIUS, lenTrajectory);
+    // The closest from outer region is always the outer shroud
+    if(outerHit1.isDefined()){	// Discard no hit on outer shroud
+        outerHit1.shroud = OUTER_SHROUD;
+        hits.push_back(outerHit1);
+        // The 2nd hit is the one at min dist from the point
+        Double_t distance = INF;
+        if(outerHit2.isDefined() && prodPoint.checkSameDirection(dirPoint.x, dirPoint.y, outerHit2)){
+            outerHit2.shroud = OUTER_SHROUD;
+            hits.push_back(outerHit2);
+            if(printout)
+                cout << "2 HIT OUTER ";
+            distance = getPointDistance(prodPoint, outerHit1);
+        }
+        Double_t distance_in = getPointDistance(prodPoint, innerHit);
+        if(innerHit1.isDefined() && prodPoint.checkSameDirection(dirPoint.x, dirPoint.y, innerHit1) && distance_in<distance){
+            innerHit1.shroud = INNER_SHROUD;
+            hits.pop_back();
+            hits.push_back(innerHit1);
+            // Check 2nd hit on the inner shroud
+            innerHit2 = compute_farthest_intersection(prodPoint.x, prodPoint.y, dirPoint.x, dirPoint.y, inner_r, lenTrajectory);
+            if(innerHit2.isDefined() && prodPoint.checkSameDirection(dirPoint.x, dirPoint.y, innerHit2)){
+                innerHit2.shroud = INNER_SHROUD;
+                hits.push_back(innerHit2);
+            }
+            distance = distance_in;
+            hits.push_back(outerHit2);
+        }
+        Double_t distance_ge = getPointDistance(prodPoint, geHit);
+        if(geHit.isDefined() && prodPoint.checkSameDirection(dirPoint.x, dirPoint.y, geHit) && distance_ge<distance){
+            // if hit ge, always after the outer shroud, then keep only the first one
+            hits.clear();
+            hits.push_back(outerHit1);
+        }
+    }
+    // Debug
+    if(printout){
+        cout << hits.size() << " HITS";
+    }
+    return hits;
+}
+
 // Parameters
 const Int_t n_inner_slices = 100;
 const Int_t n_outer_slices = 100;
-const Double_t inner_theta_slice = 2 * PI / n_inner_slices;    // angle for each slice
-const Double_t outer_theta_slice = 2 * PI / n_outer_slices;    // angle for each slice
 void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2D* &innerMap, TH2D* &outerMap){
 	cout << "Running at R=" << radius << endl;
 	// Fiber radius
@@ -321,7 +402,6 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 	// Flag sample Ge
 	Bool_t enableGe;
 	// Loop on angles
-	Double_t phi, theta;
 	Bool_t debug = false;
 	Bool_t printout = false;
 	Double_t kInnerHits = 0, kOuterHits = 0;
@@ -330,26 +410,13 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 	Int_t kGe = 0;
 	while(nOptics>0){
 		// Get random point (y1 according to angle shifting, z1 random) 
-		Double_t phi1 = -maxGeRotationAngle + rnd->Rndm() * 2 * maxGeRotationAngle;
-		prodPoint.x = radius * cos(phi1);
-		prodPoint.y = radius * sin(phi1);
-		prodPoint.z = BOTTOMZ + rnd->Rndm() * TOPZ;
-		// Get random angle
-		theta = rnd->Rndm() * PI;
-		phi = rnd->Rndm() * 2 * PI;
-		// Derived
-		Double_t x2 = x1 + 1 * sin(theta) * cos(phi);
-		Double_t y2 = y1 + 1 * sin(theta) * sin(phi);
-		Double_t z2 = z1 + 1 * cos(theta);
-		Double_t lenTrajectory = 0;	// distance to hit the plane delimited by upper or lower boundary
-		if(theta <= PI/2){
-			lenTrajectory = (TOPZ-z1)/cos(theta);	    // trajectory towards top Z
-		}else{
-			lenTrajectory = (BOTTOMZ-z1)/cos(theta);    // trajectory towards bottom Z
-		}
-		assert(lenTrajectory>=0);
+		prodPoint = generateRandomPointInAngleSlice(radius);
+		pair<struct Point, Double_t> photonEmission = generatePhotonEmission(prodPoint);
+		struct Point dirPoint = photonEmission.first;
+		Double_t lenTrajectory = photonEmission.second;
 		enableGe = checkIfEnableGe(prodPoint.x, prodPoint.y, prodPoint.z, x2, y2, z2);
-		// Note: Ignore z
+		// Debug
+        assert(lenTrajectory>=0);
 		if(printout){
 			cout << "X1: " << prodPoint.x << ", ";
 			cout << "Y1: " << prodPoint.y << ", ";
@@ -359,97 +426,23 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 			cout << "Hitting Ge: " << enableGe << ", ";
 			cout << "Max Len Traj: " << lenTrajectory << "\n";
 		}
-		
+        // Compute the possible hits
 		Int_t pointPlacement = getPointPlacement(prodPoint.x, prodPoint.y, inner_r, outer_r);
-		struct HitPoint closeHit = Point(), farHit = Point(), farfarHit = Point();
+		vector<struct Point> hits;
 		if(pointPlacement==INNER_REGION){
-			// 2 cases:
-			struct Point innerHit, outerHit, geHit;
-			innerHit = compute_closest_intersection(prodPoint.x, prodPoint.y, x2, y2, inner_r, lenTrajectory);
-			geHit = getHitOnGermanium(prodPoint.x, prodPoint.y, x2, y2, enableGe);
-			outerHit = compute_closest_intersection(prodPoint.x, prodPoint.y, x2, y2, outer_r, lenTrajectory);
-			// The closest from inner region is always the inner shroud
-			// No hit on inner shroud is possible ONLY because of short lenTrajectory
-			if(innerHit.isDefined()){
-				closeHit.point.x = innerHit.x;
-				closeHit.point.y = innerHit.y;
-				closeHit.shroud = INNER_SHROUD;
-				if(printout)
-					cout << "HIT INNER ";
-				// 1) Inner+Outer: intersect both the shrouds, no Ge hit in the middle
-				if(outerHit1.isDefined() && !geHit.isDefined()){
-					farHit.point.x = outerHit.x; 
-					farHit.point.y = outerHit.y;
-					farHit.shroud = OUTER_SHROUD;
-					if(printout)
-						cout << "2 HIT OUTER ";
-					}
-				}else{
-				// 2) Inner: intersect once the inner shroud (the outer is not reached or hit Ge before)
-					farHit.shroud = UNKWN_SHROUD;
-				}
-			}
+            hits = checkHitFromInnerRegion(struct Point prodPoint, struct Point dirPoint)
 		} else if(pointPlacement==OUTER_REGION){
-			// assert: if hit shroud, always the outer first
-			// assert: if 2nd hit, check if no Ge before
-			// 2 cases:
-			struct Point innerHit1, innerHit2, outerHit1, outerHit2, geHit;
-			innerHit1 = compute_closest_intersection(prodPoint.x, prodPoint.y, x2, y2, inner_r, lenTrajectory);
-			geHit = getHitOnGermanium(prodPoint.x, prodPoint.y, x2, y2, enableGe);
-			outerHit1 = compute_closest_intersection(prodPoint.x, prodPoint.y, x2, y2, outer_r, lenTrajectory);
-			outerHit2 = compute_farthest_intersection(prodPoint.x, prodPoint.y, x2, y2, outer_r, lenTrajectory);
-			// The closest from outer region is always the outer shroud
-			if(outerHit.isDefined()){	// Discard no hit on outer shroud
-				closeHit.point.x = outerHit.x; 
-				closeHit.point.y = outerHit.y;
-				closeHit.point.z = OUTER_SHROUD;
-				if(printout)
-					cout << "1 HIT OUTER ";
-				// The 2nd hit is the one at min dist from the point
-				Double_t distance = INF;
-				if(outerHit2.isDefined() && prodPoint.checkSameDirection(x2, y2, outerHit2)){
-					farHit.point.x = outerHit2.x;	    
-					farHit.point.y = outerHit2.y;
-					farHit.shroud = OUTER_SHROUD;
-					if(printout)
-						cout << "2 HIT OUTER ";
-					distance = getPointDistance(prodPoint, farHit.point);
-				}
-				Double_t distance_in = getPointDistance(prodPoint, innerHit);
-				if(innerHit.isDefined() && prodPoint.checkSameDirection(x2, y2, innerHit) && distance_in<distance){
-					farHit.point.x = innerHit.x; 
-					farHit.point.y = innerHit.y;
-					farHit.shroud = INNER_SHROUD;
-					if(printout)
-						cout << "2 HIT INNER ";
-					// Check 2nd hit on the inner shroud
-					innerHit2 = compute_farthest_intersection(prodPoint.x, prodPoint.y, x2, y2, inner_r, lenTrajectory);
-					if(innerHit2.isDefined() && prodPoint.checkSameDirection(x2, y2, innerHit2)){
-						farfarHit.x = innerHit2.x; 
-						farfarHit.y = innerHit2.y;
-						farfarHit.shroud = INNER_SHROUD;
-					}
-					distance = distance_in;
-				}
-				Double_t distance_ge = getPointDistance(prodPoint, geHit);
-				if(geHit.isDefined() && prodPoint.checkSameDirection(x2, y2, geHit) && distance_ge<distance){
-					// if hit ge, always after the outer shroud, then keep close_shroud
-					farHit.shroud = UNKWN_SHROUD;
-					farfarHit.shroud = UNKWN_SHROUD;
-					if(printout)
-						cout << "HIT GE ";
-				}
-			}
+		    // TODO HERE
 		} else {
 			// MIDDLE REGION
 			struct Point innerHit, outerHit, geHit;
-			innerHit = compute_closest_intersection(prodPoint.x, prodPoint.y, x2, y2, inner_r, lenTrajectory);
-			geHit = getHitOnGermanium(prodPoint.x, prodPoint.y, x2, y2, enableGe);
-			outerHit = compute_closest_intersection(prodPoint.x, prodPoint.y, x2, y2, outer_r, lenTrajectory);
+			innerHit = compute_closest_intersection(prodPoint.x, prodPoint.y, dirPoint.x, dirPoint.y, inner_r, lenTrajectory);
+			geHit = getHitOnGermanium(prodPoint.x, prodPoint.y, dirPoint.x, dirPoint.y, enableGe);
+			outerHit = compute_closest_intersection(prodPoint.x, prodPoint.y, dirPoint.x, dirPoint.y, outer_r, lenTrajectory);
 			// assert: only 1 of the intersections (inner, outer, ge) has the same direction and min distance
 			Double_t distance = INF;
 			// assert: only 1 eventual hit in the outer shroud
-			if(outerHit.isDefined() && prodPoint.checkSameDirection(x2, y2, outerHit)){
+			if(outerHit.isDefined() && prodPoint.checkSameDirection(dirPoint.x, dirPoint.y, outerHit)){
 			    	closeHit.point.x = outerHit.x;	    
     				closeHit.point.y = outerHit.y;
     				closeHit.shroud = OUTER_SHROUD;
@@ -459,15 +452,15 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 	    		}
 			Double_t distance_in = getPointDistance(prodPoint, innerHit);
 			// assert: at most 2 hits in the inner shroud
-			if(innerHit.isDefined() && prodPoint.checkSameDirection(x2, y2, innerHit) && distance_in<distance){
+			if(innerHit.isDefined() && prodPoint.checkSameDirection(dirPoint.x, dirPoint.y, innerHit) && distance_in<distance){
 			    	closeHit.point.x = innerHit.x; 
 	    			closeHit.point.y = innerHit.y;
     				closeHit.shroud = INNER_SHROUD;
 				if(printout)
 					cout << "HIT INNER";
 				// Check 2nd hit on the inner shroud
-				innerHit = compute_farthest_intersection(prodPoint.x, prodPoint.y, x2, y2, inner_r, lenTrajectory);
-				if(innerHit.isDefined() && prodPoint.checkSameDirection(x2, y2, innerHit)){
+				innerHit = compute_farthest_intersection(prodPoint.x, prodPoint.y, dirPoint.x, dirPoint.y, inner_r, lenTrajectory);
+				if(innerHit.isDefined() && prodPoint.checkSameDirection(dirPoint.x, dirPoint.y, innerHit)){
 					farHit.point.x = innerHit.x; 
 					farHit.point.y = innerHit.y;
 					farHit.shroud = INNER_SHROUD;
@@ -475,7 +468,7 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
 				distance = distance_in;
 	    		}
 			Double_t distance_ge = getPointDistance(prodPoint, geHit);
-			if(geHit.isDefined() && prodPoint.checkSameDirection(x2, y2, geHit) && distance_ge<distance){
+			if(geHit.isDefined() && prodPoint.checkSameDirection(dirPoint.x, dirPoint.y, geHit) && distance_ge<distance){
     				closeHit.shroud = UNKWN_SHROUD;	// reset eventual other hits recorded
     				farHit.shroud = UNKWN_SHROUD;
 				if(printout)
