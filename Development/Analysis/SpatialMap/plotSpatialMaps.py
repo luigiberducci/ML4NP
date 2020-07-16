@@ -51,9 +51,15 @@ minrot_x, minrot_y = 300*np.cos(minGeRot), 300*np.sin(minGeRot)
 maxrot_x, maxrot_y = 300*np.cos(maxGeRot), 300*np.sin(maxGeRot)
 plt.plot([0, minrot_x], [0, minrot_y])
 plt.plot([0, maxrot_x], [0, maxrot_y])
-plt.xlim(-300, +300)
-plt.ylim(-300, +300)
+#plt.xlim(-300, +300)
+#plt.ylim(-300, +300)
+
+plt.scatter(0.989435, -0.144975)
+plt.scatter(1.39801, -0.626436)
+plt.plot([0.989435, 0.989435+1000*(1.39801-0.989435)], [-0.144975, -0.144975+(-0.626436+.144975)*1000])
+
 plt.show()
+
 
 plt.cla()
 ax, ay = 100, -10
