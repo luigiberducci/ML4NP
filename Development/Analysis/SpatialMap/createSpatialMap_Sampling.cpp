@@ -48,7 +48,7 @@ Double_t PI = 3.141592653589793;
 // Rnd Generator
 TRandom * rnd = new TRandom();
 // Attenuation Lenght, Geometric Coverage
-Double_t attenuationLen = 1000;    //mm Attenuation LengDouble_t attenuationLen = 10    //mm
+Double_t attenuationLen = 180;    //mm Attenuation LengDouble_t attenuationLen = 10    //mm
 Double_t shroudCapturePr = .54;    //fiber coverage over real cylinder surface
 // Coordinate Ge Crystals
 Int_t nGeCrystals = 14;
@@ -403,11 +403,11 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
                 cout << "Hit on the fibers at: " << sampledHit.x << ", " << sampledHit.y << ", " << sampledHit.z
                      << " | angle: " << angle << "\n\n";
             }
-            // Update counters and debug
-            nOptics--;    // decrement n optics only when hit a shroud
-            if (enableGe)
-                kGe++;
         }
+        // Update counters and debug    
+    	nOptics--;
+	if (enableGe)
+            kGe++;
         if(debug)
             break;
 	}
@@ -427,7 +427,7 @@ void createSpatialMap_Sampling(){
 	initializePositionGeCrystals();
 	// Create map
 	TString outfile;
-    	outfile.Form("ToySpatialMap_%dR_%dAngleSlices_%dops_AttLen%f_NewSampling.root", (int)rbins, angle_bins, nOpticsPerPoint, attenuationLen);
+    	outfile.Form("ToySpatialMap_%dR_%dAngleSlices_%dops_AttLen%f_NewSampling_Last.root", (int)rbins, angle_bins, nOpticsPerPoint, attenuationLen);
     	TFile * file = new TFile(outfile, "RECREATE");
 	TH1D * prInnerD = new TH1D("PrInnerDet", "Pr ~ Fract. Inner/(Inner+Outer) Detections", rbins, min_r, max_r);
 	TH2D * innerMap = new TH2D("InnerMap", "R-Angle Inner Shroud Map", rbins, min_r, max_r, angle_bins, min_angle, max_angle);
