@@ -48,7 +48,7 @@ Double_t PI = 3.141592653589793;
 // Rnd Generator
 TRandom * rnd = new TRandom();
 // Attenuation Lenght, Geometric Coverage
-Double_t attenuationLen = 180;    //mm Attenuation LengDouble_t attenuationLen = 10    //mm
+Double_t attenuationLen = 500;     //mm Attenuation Leng
 Double_t shroudCapturePr = .54;    //fiber coverage over real cylinder surface
 // Coordinate Ge Crystals
 Int_t nGeCrystals = 14;
@@ -403,11 +403,11 @@ void runToyOpticsFromPoint(Double_t radius, Int_t nOptics, TH1D * &prInnerD, TH2
                 cout << "Hit on the fibers at: " << sampledHit.x << ", " << sampledHit.y << ", " << sampledHit.z
                      << " | angle: " << angle << "\n\n";
             }
+            // Update counters and debug    
+    	    nOptics--;
+	    if (enableGe)
+                kGe++;
         }
-        // Update counters and debug    
-    	nOptics--;
-	if (enableGe)
-            kGe++;
         if(debug)
             break;
 	}
