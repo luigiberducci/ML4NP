@@ -207,10 +207,11 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
         // Open file, get tree and number of sipm
         TFile *f = TFile::Open(fullDirIn + fileName);
         TTree *fTree = (TTree*) f->Get("fTree");
-        //TParameter<Int_t> *NSiPM = (TParameter<Int_t>*) f->Get("NSlices");
+        TParameter<Int_t> *NInnerSlicesParam= (TParameter<Int_t>*) f->Get("NInnerSlices");
+        TParameter<Int_t> *NOuterSlicesParam= (TParameter<Int_t>*) f->Get("NOuterSlices");
         //const int nSiPM = (const int) NSiPM->GetVal();
-        const int nInnerSlices = 12;
-        const int nOuterSlices = 20;
+        const int nInnerSlices = NInnerSlicesParam->GetVal();
+        const int nOuterSlices = NOuterSlicesParam->GetVal();
         cout << "[Debug] Loaded Tree: nentries " << fTree->GetEntries() << endl;
 
         // Compute time of first deposit in lar, and random offset for event-shifting
@@ -239,7 +240,7 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
         }
 
     	Int_t nevents = map_event_t0.size();
-	Int_t ecounter = 0, last_event = -1, prodevents_counter=0;
+	Int_t ecounter = 0, last_event = -1, prodevents_counter=0, written_events_counter=0;
     	// Create data struct
         vector<vector<Long64_t>> TSiPMEvent_inner = newDatasetEventInstance(nInnerSlices, nDeltaT);
         vector<vector<Long64_t>> TSiPMEvent_outer = newDatasetEventInstance(nOuterSlices, nDeltaT);
@@ -257,7 +258,7 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
 	            // Note: we have to check group_event==1 every time
 	            if((ecounter % group_events == 1) || (group_events == 1)){
                         if((ecounter > 1) || (group_events == 1)){
-                            prodevents_counter++;   // skip 1, where we only create datastruct
+                            prodevents_counter++;
                             if (prodevents_counter % max_event_x_file == 1) {
                                 outCSV.close();
                                 file_part_id++; // Increment the id of file part (part1, part2, ..)
@@ -271,10 +272,11 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
                             Int_t tot_npe = 0;
                             for(auto pe : PEDetectedInDt)
                                 tot_npe += pe;
-                            if(tot_npe >= min_npe && tot_npe <= max_npe)
-                                write_produced_event_in_outfile(outCSV, prodevents_counter, TSiPMEvent_inner, TSiPMEvent_outer, 
+                            if(tot_npe >= min_npe && tot_npe <= max_npe){
+                                written_events_counter++;
+                                write_produced_event_in_outfile(outCSV, written_events_counter, TSiPMEvent_inner, TSiPMEvent_outer, 
 								TSiPMEvent_events, TSiPMEvent_offsets, PEDetectedInDt, EDepositedInDt);
-
+                            }
                         }
 			TSiPMEvent_inner = newDatasetEventInstance(nInnerSlices, nDeltaT);
 			TSiPMEvent_outer = newDatasetEventInstance(nOuterSlices, nDeltaT);
@@ -312,7 +314,7 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
         fTree->Delete();
         f->Close();
         f->Delete();
-        cout << "[Info] Produced snapshots: " << prodevents_counter << ", ";
+        cout << "[Info] Produced snapshots: " << written_events_counter << ", ";
 	cout << "skipped entries for time: " << skipped_entries << "\n";
     }
     gSystem->FreeDirectory(dirp);

@@ -50,9 +50,9 @@ void output_to_csv(TString inFilepath){
     //TTreeReaderValue<Double_t> detectionefficiency(theReader, "detectionefficiency");
     TTreeReaderValue<Int_t> eventnumber(theReader, "eventnumber");
     TTreeReaderValue<Int_t> tracknumber(theReader, "tracknumber");
-    TTreeReaderValue<TString> creatorprocess(theReader, "creatorprocess");
+    TTreeReaderValue<string> creatorprocess(theReader, "creatorprocess");
     TTreeReaderValue<Int_t> sensitivevolid(theReader, "SensitiveVolumeID");
-    //TTreeReaderValue<string> material(theReader, "material");
+    TTreeReaderValue<string> material(theReader, "material");
     /*TTreeReaderValue<Int_t> detectornumber(theReader, "detectornumber");
     TTreeReaderValue<Int_t> parentnucleusPID(theReader, "parentnucleusPID");*/
 
@@ -72,7 +72,7 @@ void output_to_csv(TString inFilepath){
             //Print header
             out << "PID,ParentTrackID,energydeposition,kineticenergy,time,x,y,z,";
             out << "eventnumber,tracknumber,creatorprocess,";
-            out << "SensitiveVolID";
+            out << "SensitiveVolID,material";
             out << endl;
 	    }
         i++;
@@ -80,7 +80,7 @@ void output_to_csv(TString inFilepath){
         out << setprecision(20) <<  *energydeposition << "," << *kineticenergy << "," << *time << ",";
         out << *x << "," << *y << "," << *z << ",";
         out << *eventnumber << "," << *tracknumber  << "," << *creatorprocess << ",";
-        out << *sensitivevolid;
+        out << *sensitivevolid << "," << *material;
         out << endl;
    }
    std::cout << "\n[Info] Written " << i << " entries in " << outFileNumber << " files.\n";
