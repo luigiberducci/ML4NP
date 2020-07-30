@@ -32,10 +32,12 @@ void check_space_muons(){
     bool debug = false;
     // Variables
     double r=0, z=0;
+    string * material = 0;
     TFile * oFile = TFile::Open("RZExtraction.root", "RECREATE");
     TTree * oTree = new TTree("fTree", "");
     oTree->Branch("r", &r);
     oTree->Branch("z", &z);
+    oTree->Branch("material", &material);
     while((entry = (char*)gSystem->GetDirEntry(dirp))) {
         TString fileName = entry;
         if(!isRootFile(entry, "SlicedDetections"))   continue;
@@ -49,6 +51,7 @@ void check_space_muons(){
         TTree *fTree = (TTree*) f->Get("fTree");
         fTree->SetBranchAddress("r", &r);
         fTree->SetBranchAddress("z", &z);
+        fTree->SetBranchAddress("material", &material);
 
         for(int i=0; i<fTree->GetEntries(); i++){
             fTree->GetEntry(i);

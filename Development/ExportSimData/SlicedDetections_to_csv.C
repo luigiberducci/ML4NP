@@ -25,47 +25,74 @@ bool isRootFile(TString fileName, TString prefix){
     return false;
 }
 
-void produce_single_export(TString inFilepath){
+void produceSingleExport(TString inFilepath){
     // IO params
     TFile fileIn(inFilepath);
-    TObjArray *filepath = inFilepath.Tokenize("/");     // Assume unix-like path
-    TString outFileBase = ((TObjString *)(filepath->At(filepath->GetEntries() - 1)))->String();
-    TObjArray *filename= outFileBase.Tokenize(".");
-    outFileBase = ((TObjString *)(filename->At(0)))->String();
+    // Create out file name
+    TString outFileName(TString(inFilepath(0, inFilepath.Length()-5)) + ".csv");
     // Tree
     TTree* fTree = (TTree*) fileIn.Get("fTree");
-    // Branches
+    // Params
     TParameter<Int_t> * NInnerSlicesParam = (TParameter<Int_t>*) fileIn.Get("NInnerSlices");
     TParameter<Int_t> * NOuterSlicesParam = (TParameter<Int_t>*) fileIn.Get("NOuterSlices");
-    Int_t nInnerSlices = NInnerSlicesParam->GetVal();
-    Int_t nOuterSlices = NOuterSlicesParam->GetVal();
+    // Branches
+    Double_t x, y, z, r, time, energydeposition, detectionefficiency, quantumefficiency;
+    Int_t eventnumber, PID, pedetected;
+    string * material = 0;
+    vector<Int_t> innerSlices, outerSlices;
+    for(int j=0; j<NInnerSlicesParam->GetVal(); j++)
+	innerSlices.push_back(0);
+    for(int j=0; j<NOuterSlicesParam->GetVal(); j++)
+	outerSlices.push_back(0);
+    // Connect branches
+    fTree->SetBranchAddress("eventnumber", &eventnumber);
+    fTree->SetBranchAddress("PID", &PID);
+    fTree->SetBranchAddress("time", &time);
+    fTree->SetBranchAddress("x", &x);
+    fTree->SetBranchAddress("y", &y);
+    fTree->SetBranchAddress("z", &z);
+    fTree->SetBranchAddress("r", &r);
+    fTree->SetBranchAddress("material", &material);
+    fTree->SetBranchAddress("energydeposition", &energydeposition);
+    fTree->SetBranchAddress("pedetected", &pedetected);
+    fTree->SetBranchAddress("detectionefficiency", &detectionefficiency);
+    fTree->SetBranchAddress("quantumefficiency", &quantumefficiency);
+    for(int j=0; j<NInnerSlicesParam->GetVal(); j++){
+        TString branchName = "InnerSlice";
+        branchName += j;
+        fTree->SetBranchAddress(branchName, &innerSlices[j]);
+    }
+    for(int j=0; j<NOuterSlicesParam->GetVal(); j++){
+        TString branchName = "OuterSlice";
+        branchName += j;
+        fTree->SetBranchAddress(branchName, &outerSlices[j]);
+    }
     // Loop over entries
     std::ofstream out;
     for(int i=0; i<fTree->GetEntries(); i++){
         fTree->GetEntry(i);
         // Check if we have a new event and reached the max num in curr file
         if(i == 0){
-            std::cout << "[Info] Creating " << outFileBase << ".csv" << endl;
+            cout << "\t[Info] Creating " << outFileName << endl;
             if(i > 0)    out.close();
-	        out.open(outFileBase + ".csv");
+	        out.open(outFileName);
             //Print header
-            /* out << "PID,ParentTrackID,energydeposition,kineticenergy,time,x,y,z,"; */
-            /* out << "px,py,pz,eventnumber,tracknumber,creatorprocess,process,parentnucleusPID,"; */
-            /* out << "muonx,muony,muonz,muonpx,muonpy,muonpz,muonenergy,"; */
-            /* out << "material,detectornumber"; */
-            /* out << endl; */
+            out << "eventnumber,PID,time,x,y,z,r,material,";
+            out << "energydeposition,pedetected,detectionefficiency,quantumefficiency,";
+            for(int j=0; j<NInnerSlicesParam->GetVal(); j++)
+                out << "InnerSlice" << j << ",";
+            for(int j=0; j<NOuterSlicesParam->GetVal(); j++)
+                out << "OuterSlice" << j << ",";
+            out << "\n";
 	    }
-        /* out << *pid << "," << *p_trace_id << ","; */
-        /* out << setprecision(20) <<  *energydeposition << "," << *kineticenergy << "," << *time << ","; */
-        /* out << *x << "," << *y << "," << *z << ","; */
-        /* out << *px << "," << *py << "," << *pz << ","; */
-        /* out << *eventnumber << "," << *tracknumber  << "," << *creatorprocess << "," << *process << ","; */
-        /* out << *parentnucleusPID << ","; */
-        /* out << *muonx << "," << *muony << "," << *muonz << ","; */
-        /* out << *muonpx << "," << *muonpy << "," << *muonpz << ","; */
-        /* out << *muone << ","; */
-        /* out << *material << "," << *detectornumber; */
-        /* out << endl; */
+        out << eventnumber << "," << PID << "," << time << "," << x << "," << y << "," << z << "," << r << ",";
+        out << *material << "," << setprecision(15) << energydeposition << "," << pedetected << ",";
+        out << detectionefficiency << "," << quantumefficiency << ",";
+        for(int j=0; j<NInnerSlicesParam->GetVal(); j++)
+            out << innerSlices[j] <<  ",";
+        for(int j=0; j<NOuterSlicesParam->GetVal(); j++)
+            out << outerSlices[j] <<  ",";
+	out << "\n";
    }
 }
 
@@ -77,7 +104,7 @@ void SlicedDetections_to_csv(const char * dirIn="./", const char * prefixIn="Sli
     while((entry = (char*)gSystem->GetDirEntry(dirp))) {
         TString fileName = entry;
         if(!isRootFile(fileName, prefixIn))   continue;
-        cout << "\t" << fullDirIn + fileName << endl;   // Debug
-        produce_single_export(fileName);
+        cout << "\t[Info] Loading " << fullDirIn + fileName << endl;   // Debug
+        produceSingleExport(fileName);
     }
 }
