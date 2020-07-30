@@ -44,7 +44,7 @@
 using namespace std;
 
 // Flat for input format
-const Bool_t useMaterialBranch = false;              // If `true`, use `material` branch to compute NPE for Argon only
+const Bool_t useMaterialBranch = true;              // If `true`, use `material` branch to compute NPE for Argon only
 // Flag for output scheme
 const Bool_t writeOnlyROIEntries = false;           // If `true`, all the entries outside the ROI are ignored
 const Bool_t writeOnlyNonZeroDetections = false;     // If `true`, all the entries wt NPE=0 are ignored
@@ -53,7 +53,7 @@ const Bool_t writeOnlyArgonLiquidEntries = false;     // If `true`, all the entr
 const Int_t N_INNERSLICES = 12;		// Number of Slices to segment the X-Y plane of Inner Shroud
 const Int_t N_OUTERSLICES = 20;		// Number of Slices to segment the X-Y plane of Outer Shroud
 const Int_t OPYIELD = 40;		// Number of Optical Photons per KeV
-const Double_t QUANTUMEFF = 0.40;	// Quantum Efficiency of SiPMs
+const Double_t QUANTUMEFF = 0.20;	// Quantum Efficiency of SiPMs
 // Optical Map
 TFile * mapFile;
 TFile * spatMapFile;
