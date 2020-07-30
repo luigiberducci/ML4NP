@@ -155,10 +155,10 @@ void convertSingleFile(TString inFilePath, TString outFilePath, TString treeName
     array<Int_t, N_OUTERSLICES> outer_readouts;
     TParameter<Int_t> *nInnerSlicesParam = new TParameter<Int_t>("NInnerSlices", N_INNERSLICES);
     TParameter<Int_t> *nOuterSlicesParam = new TParameter<Int_t>("NOuterSlices", N_OUTERSLICES);
-    TParameter<Bool_t> *flagUseMaterialBranch = new TParameter<Int_t>("FlagUseMaterialBranch", useMaterialBranch);
-    TParameter<Bool_t> *flagWriteOnlyROIEntries = new TParameter<Int_t>("FlagWriteOnlyROIEntries", writeOnlyROIEntries);
-    TParameter<Bool_t> *flagWriteOnlyNonZeroDet = new TParameter<Int_t>("FlagWriteOnlyNonZeroDet", writeOnlyNonZeroDetections);
-    TParameter<Bool_t> *flagWriteOnlyLArEntries = new TParameter<Int_t>("FlagWriteOnlyLArEntries", writeOnlyArgonLiquidEntries);
+    TParameter<Bool_t> *flagUseMaterialBranch = new TParameter<Bool_t>("FlagUseMaterialBranch", useMaterialBranch);
+    TParameter<Bool_t> *flagWriteOnlyROIEntries = new TParameter<Bool_t>("FlagWriteOnlyROIEntries", writeOnlyROIEntries);
+    TParameter<Bool_t> *flagWriteOnlyNonZeroDet = new TParameter<Bool_t>("FlagWriteOnlyNonZeroDet", writeOnlyNonZeroDetections);
+    TParameter<Bool_t> *flagWriteOnlyLArEntries = new TParameter<Bool_t>("FlagWriteOnlyLArEntries", writeOnlyArgonLiquidEntries);
     TBranch *bN = SlicedTree.Branch("eventnumber", &eventnumber, "eventnumber/I");
     TBranch *bPID = SlicedTree.Branch("PID", &PID, "PID/D");
     TBranch *bT = SlicedTree.Branch("time", &time, "time/D");
