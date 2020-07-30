@@ -11,3 +11,4 @@ ML4GeneralMuons/models/*
 *.root
 *.out
 *.csv
+*env
