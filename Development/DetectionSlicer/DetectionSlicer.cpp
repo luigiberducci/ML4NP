@@ -47,8 +47,8 @@ using namespace std;
 const Bool_t useMaterialBranch = false;              // If `true`, use `material` branch to compute NPE for Argon only
 // Flag for output scheme
 const Bool_t writeOnlyROIEntries = false;           // If `true`, all the entries outside the ROI are ignored
-const Bool_t writeOnlyNonZeroDetections = true;     // If `true`, all the entries wt NPE=0 are ignored
-const Bool_t writeOnlyArgonLiquidEntries = true;     // If `true`, all the entries wt material!='ArgonLiquid' are ignored
+const Bool_t writeOnlyNonZeroDetections = false;     // If `true`, all the entries wt NPE=0 are ignored
+const Bool_t writeOnlyArgonLiquidEntries = false;     // If `true`, all the entries wt material!='ArgonLiquid' are ignored
 // Parameter for spatial distribution of detections
 const Int_t N_INNERSLICES = 12;		// Number of Slices to segment the X-Y plane of Inner Shroud
 const Int_t N_OUTERSLICES = 20;		// Number of Slices to segment the X-Y plane of Outer Shroud
@@ -131,8 +131,9 @@ void convertSingleFile(TString inFilePath, TString outFilePath, TString treeName
     TTree *simTree = (TTree*) f->Get(treeName);
     // Connect branches
     Double_t x, y, z, r, time, Edep;
-    Int_t eventnumber;
+    Int_t eventnumber, PID;
     std::string * material = "null";
+    simTree->SetBranchAddress("PID", &PID);
     simTree->SetBranchAddress("x", &x);
     simTree->SetBranchAddress("y", &y);
     simTree->SetBranchAddress("z", &z);
@@ -154,7 +155,12 @@ void convertSingleFile(TString inFilePath, TString outFilePath, TString treeName
     array<Int_t, N_OUTERSLICES> outer_readouts;
     TParameter<Int_t> *nInnerSlicesParam = new TParameter<Int_t>("NInnerSlices", N_INNERSLICES);
     TParameter<Int_t> *nOuterSlicesParam = new TParameter<Int_t>("NOuterSlices", N_OUTERSLICES);
+    TParameter<Bool_t> *flagUseMaterialBranch = new TParameter<Int_t>("FlagUseMaterialBranch", useMaterialBranch);
+    TParameter<Bool_t> *flagWriteOnlyROIEntries = new TParameter<Int_t>("FlagWriteOnlyROIEntries", writeOnlyROIEntries);
+    TParameter<Bool_t> *flagWriteOnlyNonZeroDet = new TParameter<Int_t>("FlagWriteOnlyNonZeroDet", writeOnlyNonZeroDetections);
+    TParameter<Bool_t> *flagWriteOnlyLArEntries = new TParameter<Int_t>("FlagWriteOnlyLArEntries", writeOnlyArgonLiquidEntries);
     TBranch *bN = SlicedTree.Branch("eventnumber", &eventnumber, "eventnumber/I");
+    TBranch *bPID = SlicedTree.Branch("PID", &PID, "PID/D");
     TBranch *bT = SlicedTree.Branch("time", &time, "time/D");
     TBranch *bX = SlicedTree.Branch("x", &x, "x/D");
     TBranch *bY = SlicedTree.Branch("y", &y, "y/D");
@@ -294,6 +300,10 @@ void convertSingleFile(TString inFilePath, TString outFilePath, TString treeName
     // Write output
     nInnerSlicesParam->Write();
     nOuterSlicesParam->Write();
+    flagUseMaterialBranch->Write();
+    flagWriteOnlyROIEntries->Write();
+    flagWriteOnlyNonZeroDet->Write();
+    flagWriteOnlyLArEntries->Write();
     SlicedTree.Write();
     output->Close();
     output->Delete();
