@@ -160,7 +160,7 @@ void convertSingleFile(TString inFilePath, TString outFilePath, TString treeName
     TParameter<Bool_t> *flagWriteOnlyNonZeroDet = new TParameter<Bool_t>("FlagWriteOnlyNonZeroDet", writeOnlyNonZeroDetections);
     TParameter<Bool_t> *flagWriteOnlyLArEntries = new TParameter<Bool_t>("FlagWriteOnlyLArEntries", writeOnlyArgonLiquidEntries);
     TBranch *bN = SlicedTree.Branch("eventnumber", &eventnumber, "eventnumber/I");
-    TBranch *bPID = SlicedTree.Branch("PID", &PID, "PID/D");
+    TBranch *bPID = SlicedTree.Branch("PID", &PID, "PID/I");
     TBranch *bT = SlicedTree.Branch("time", &time, "time/D");
     TBranch *bX = SlicedTree.Branch("x", &x, "x/D");
     TBranch *bY = SlicedTree.Branch("y", &y, "y/D");
