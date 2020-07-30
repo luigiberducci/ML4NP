@@ -132,7 +132,7 @@ void convertSingleFile(TString inFilePath, TString outFilePath, TString treeName
     // Connect branches
     Double_t x, y, z, r, time, Edep;
     Int_t eventnumber, PID;
-    std::string * material = "null";
+    std::string * material = 0;
     simTree->SetBranchAddress("PID", &PID);
     simTree->SetBranchAddress("x", &x);
     simTree->SetBranchAddress("y", &y);
