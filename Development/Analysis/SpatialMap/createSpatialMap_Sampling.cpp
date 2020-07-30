@@ -422,7 +422,7 @@ void createSpatialMap_Sampling(){
 	Int_t angle_bins = 100;
 	Int_t min_angle = -ceil(PI);
 	Int_t max_angle = +ceil(PI);
-	Int_t nOpticsPerPoint = 10000;
+	Int_t nOpticsPerPoint = 100000;
 	// Initialize Ge Crystals
 	initializePositionGeCrystals();
 	// Create map
