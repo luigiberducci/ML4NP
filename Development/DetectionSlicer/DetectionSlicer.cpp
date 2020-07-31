@@ -329,7 +329,7 @@ void loadOpticalMap(const char * mapDir="OpticalMaps",
 }
 
 void loadSpatialMaps(const char * mapDir="OpticalMaps",
-                    const char * mapFileName = "ToySpatialMap_711R_100AngleSlices_100000ops_HitSampling",
+                    const char * mapFileName = "ToySpatialMap_711R_100AngleSlices_10000ops_AttLen500.000000_NewSampling_Last",
                     const char * PrInnerDetObjectName = "PrInnerDet",
                     const char * InnermapObjectName = "InnerMap",
                     const char * OutermapObjectName = "OuterMap"){
