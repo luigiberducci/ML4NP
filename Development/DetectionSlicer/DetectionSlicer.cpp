@@ -342,8 +342,8 @@ void loadSpatialMaps(const char * mapDir="OpticalMaps",
     cout << "[Info] Loaded Spatial Maps from " << mapFilePath << endl;
     // Create Projections to save time
     for(Int_t r=0; r<MAP_MAX_RADIUS; r++){
-        spatialInnerMapProjections[r] = spatialInnerMap->ProjectionY("py", r);
-        spatialOuterMapProjections[r] = spatialOuterMap->ProjectionY("py", r);
+        spatialInnerMapProjections[r] = spatialInnerMap->ProjectionY("py", r, r+1);
+        spatialOuterMapProjections[r] = spatialOuterMap->ProjectionY("py", r, r+1);
     }
     cout << "[Info] Loaded Radius-Projections from Spatial Maps\n";
 }
