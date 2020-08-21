@@ -105,6 +105,6 @@ void SlicedDetections_to_csv(const char * dirIn="./", const char * prefixIn="Sli
         TString fileName = entry;
         if(!isRootFile(fileName, prefixIn))   continue;
         cout << "\t[Info] Loading " << fullDirIn + fileName << endl;   // Debug
-        produceSingleExport(fileName);
+        produceSingleExport(fullDirIn + fileName);
     }
 }
