@@ -130,7 +130,7 @@ void convertSingleFile(TString inFilePath, TString outFilePath, TString treeName
     TFile *f = TFile::Open(inFilePath);
     TTree *simTree = (TTree*) f->Get(treeName);
     // Connect branches
-    Double_t x, y, z, r, time, Edep;
+    Double_t x, y, z, r, time, Edep, kineticenergy;
     Int_t eventnumber, PID;
     std::string * material = 0;
     simTree->SetBranchAddress("PID", &PID);
@@ -140,6 +140,7 @@ void convertSingleFile(TString inFilePath, TString outFilePath, TString treeName
     simTree->SetBranchAddress("time", &time);
     simTree->SetBranchAddress("eventnumber", &eventnumber);    // To avoid overlap of events
     simTree->SetBranchAddress("energydeposition", &Edep);
+    simTree->SetBranchAddress("kineticenergy", &kineticenergy);
     if(useMaterialBranch==true)
         simTree->SetBranchAddress("material", &material);
     // Create new tree
@@ -168,6 +169,7 @@ void convertSingleFile(TString inFilePath, TString outFilePath, TString treeName
     TBranch *bR = SlicedTree.Branch("r", &r, "r/D");
     TBranch *bM = SlicedTree.Branch("material", &material);
     TBranch *bE = SlicedTree.Branch("energydeposition", &Edep, "energydeposition/D");
+    TBranch *bE = SlicedTree.Branch("kineticenergy", &kineticenergy, "kineticenergy/D");
     TBranch *bPE = SlicedTree.Branch("pedetected", &pedetected, "pedetected/I");
     TBranch *bDE = SlicedTree.Branch("detectionefficiency", &deteff, "detectionefficiency/D");
     TBranch *bQE = SlicedTree.Branch("quantumefficiency", &quantumEff, "quantumefficiency/D");
