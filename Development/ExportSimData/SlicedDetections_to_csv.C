@@ -37,6 +37,7 @@ void produceSingleExport(TString inFilepath){
     TParameter<Int_t> * NOuterSlicesParam = (TParameter<Int_t>*) fileIn.Get("NOuterSlices");
     // Branches
     Double_t x, y, z, r, time, energydeposition, detectionefficiency, quantumefficiency;
+    Double_t kineticenergy;
     Int_t eventnumber, PID, pedetected;
     string * material = 0;
     vector<Int_t> innerSlices, outerSlices;
@@ -54,6 +55,7 @@ void produceSingleExport(TString inFilepath){
     fTree->SetBranchAddress("r", &r);
     fTree->SetBranchAddress("material", &material);
     fTree->SetBranchAddress("energydeposition", &energydeposition);
+    fTree->SetBranchAddress("kineticenergy", &kineticenergy);
     fTree->SetBranchAddress("pedetected", &pedetected);
     fTree->SetBranchAddress("detectionefficiency", &detectionefficiency);
     fTree->SetBranchAddress("quantumefficiency", &quantumefficiency);
@@ -78,21 +80,25 @@ void produceSingleExport(TString inFilepath){
 	        out.open(outFileName);
             //Print header
             out << "eventnumber,PID,time,x,y,z,r,material,";
-            out << "energydeposition,pedetected,detectionefficiency,quantumefficiency,";
+            out << "energydeposition,kineticenergy,pedetected,detectionefficiency,quantumefficiency,";
             for(int j=0; j<NInnerSlicesParam->GetVal(); j++)
                 out << "InnerSlice" << j << ",";
             for(int j=0; j<NOuterSlicesParam->GetVal(); j++)
                 out << "OuterSlice" << j << ",";
             out << "\n";
 	    }
-        out << eventnumber << "," << PID << "," << time << "," << x << "," << y << "," << z << "," << r << ",";
-        out << *material << "," << setprecision(15) << energydeposition << "," << pedetected << ",";
-        out << detectionefficiency << "," << quantumefficiency << ",";
-        for(int j=0; j<NInnerSlicesParam->GetVal(); j++)
-            out << innerSlices[j] <<  ",";
-        for(int j=0; j<NOuterSlicesParam->GetVal(); j++)
-            out << outerSlices[j] <<  ",";
-	out << "\n";
+	if(i % 1000000 == 0)
+		cout << i << "/" << fTree->GetEntries() << endl;
+	if(energydeposition>0){
+		out << eventnumber << "," << PID << "," << time << "," << x << "," << y << "," << z << "," << r << ",";
+		out << *material << "," << setprecision(15) << energydeposition << "," << kineticenergy << "," << pedetected << ",";
+		out << detectionefficiency << "," << quantumefficiency << ",";
+		for(int j=0; j<NInnerSlicesParam->GetVal(); j++)
+		    out << innerSlices[j] <<  ",";
+		for(int j=0; j<NOuterSlicesParam->GetVal(); j++)
+		    out << outerSlices[j] <<  ",";
+		out << "\n";
+	}
    }
 }
 

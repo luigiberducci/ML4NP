@@ -168,7 +168,7 @@ void convertSingleFile(TString inFilePath, TString outFilePath, TString treeName
     TBranch *bZ = SlicedTree.Branch("z", &z, "z/D");
     TBranch *bR = SlicedTree.Branch("r", &r, "r/D");
     TBranch *bM = SlicedTree.Branch("material", &material);
-    TBranch *bE = SlicedTree.Branch("energydeposition", &Edep, "energydeposition/D");
+    TBranch *bKE = SlicedTree.Branch("energydeposition", &Edep, "energydeposition/D");
     TBranch *bE = SlicedTree.Branch("kineticenergy", &kineticenergy, "kineticenergy/D");
     TBranch *bPE = SlicedTree.Branch("pedetected", &pedetected, "pedetected/I");
     TBranch *bDE = SlicedTree.Branch("detectionefficiency", &deteff, "detectionefficiency/D");
