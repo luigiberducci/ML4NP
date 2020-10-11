@@ -89,14 +89,14 @@ map<Int_t, Double_t> getFirstDetectionInLArPerEvents(TTree * fTree){
         fTree->GetEntry(i);
         if(pedetected <= 0)
             continue;
-	map<Int_t, Double_t>::iterator it = map_event_t0.find(eventnumber);
-	if (it == map_event_t0.end()){
-		map_event_t0.insert(make_pair(eventnumber, time));
-	}else{
-		if (it->second > time)
-			it->second = time;	//eventually update time with min val
+	    map<Int_t, Double_t>::iterator it = map_event_t0.find(eventnumber);
+	    if (it == map_event_t0.end()){
+		    map_event_t0.insert(make_pair(eventnumber, time));
+    	}else{
+	    	if (it->second > time)
+		    	it->second = time;	//eventually update time with min val
+            }
         }
-    }
     return map_event_t0;
 }
 
@@ -240,7 +240,7 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
         }
 
     	Int_t nevents = map_event_t0.size();
-	Int_t ecounter = 0, last_event = -1, prodevents_counter=0, written_events_counter=0;
+	    Int_t ecounter = 0, last_event = -1, prodevents_counter=0, written_events_counter=0;
     	// Create data struct
         vector<vector<Long64_t>> TSiPMEvent_inner = newDatasetEventInstance(nInnerSlices, nDeltaT);
         vector<vector<Long64_t>> TSiPMEvent_outer = newDatasetEventInstance(nOuterSlices, nDeltaT);
@@ -257,7 +257,7 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
                     ecounter++;
 	            // Note: we have to check group_event==1 every time
 	            if((ecounter % group_events == 1) || (group_events == 1)){
-                        if((ecounter > 1) || (group_events == 1)){
+                    if((ecounter > 1) || (group_events == 1)){
                             prodevents_counter++;
                             if (prodevents_counter % max_event_x_file == 1) {
                                 outCSV.close();
@@ -277,16 +277,16 @@ void produce_time_dataset(const char * dirIn, const char * dirOut, TString prefi
                                 write_produced_event_in_outfile(outCSV, written_events_counter, TSiPMEvent_inner, TSiPMEvent_outer, 
 								TSiPMEvent_events, TSiPMEvent_offsets, PEDetectedInDt, EDepositedInDt);
                             }
-                        }
-			TSiPMEvent_inner = newDatasetEventInstance(nInnerSlices, nDeltaT);
-			TSiPMEvent_outer = newDatasetEventInstance(nOuterSlices, nDeltaT);
-                        TSiPMEvent_events.clear();
-                        TSiPMEvent_offsets.clear();
-                        PEDetectedInDt.fill(0);
-                        EDepositedInDt.fill(0);
-		    }
-                    TSiPMEvent_events.push_back(eventnumber);
-                    TSiPMEvent_offsets.push_back(map_event_offset[eventnumber]);
+                    }
+			        TSiPMEvent_inner = newDatasetEventInstance(nInnerSlices, nDeltaT);
+			        TSiPMEvent_outer = newDatasetEventInstance(nOuterSlices, nDeltaT);
+                    TSiPMEvent_events.clear();
+                    TSiPMEvent_offsets.clear();
+                    PEDetectedInDt.fill(0);
+                    EDepositedInDt.fill(0);
+		        }
+                TSiPMEvent_events.push_back(eventnumber);
+                TSiPMEvent_offsets.push_back(map_event_offset[eventnumber]);
 	    }
 	    // Debug
             if(i % 10000 == 0)
