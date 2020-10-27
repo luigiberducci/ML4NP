@@ -1,0 +1,85 @@
+|--- NAS_outer <= 5.50
+|   |--- NPE_outer <= 7.50
+|   |   |--- NPE_outer <= 4.50
+|   |   |   |--- MeanNPEActive_inner <= 0.00
+|   |   |   |   |--- SpatRange_outer <= 17.50
+|   |   |   |   |   |--- class: 0.0
+|   |   |   |   |--- SpatRange_outer >  17.50
+|   |   |   |   |   |--- class: 1.0
+|   |   |   |--- MeanNPEActive_inner >  0.00
+|   |   |   |   |--- NAS_outer <= 3.50
+|   |   |   |   |   |--- class: 0.0
+|   |   |   |   |--- NAS_outer >  3.50
+|   |   |   |   |   |--- class: 0.0
+|   |   |--- NPE_outer >  4.50
+|   |   |   |--- SpatRange_inner <= 0.00
+|   |   |   |   |--- MeanNPEActive_outer <= 1.32
+|   |   |   |   |   |--- class: 0.0
+|   |   |   |   |--- MeanNPEActive_outer >  1.32
+|   |   |   |   |   |--- class: 1.0
+|   |   |   |--- SpatRange_inner >  0.00
+|   |   |   |   |--- SpatRange_inner <= 10.50
+|   |   |   |   |   |--- class: 0.0
+|   |   |   |   |--- SpatRange_inner >  10.50
+|   |   |   |   |   |--- class: 0.0
+|   |--- NPE_outer >  7.50
+|   |   |--- SpatRange_inner <= 0.00
+|   |   |   |--- NPE_outer <= 9.50
+|   |   |   |   |--- SpatRange_outer <= 17.50
+|   |   |   |   |   |--- class: 1.0
+|   |   |   |   |--- SpatRange_outer >  17.50
+|   |   |   |   |   |--- class: 1.0
+|   |   |   |--- NPE_outer >  9.50
+|   |   |   |   |--- SpatRange_outer <= 6.50
+|   |   |   |   |   |--- class: 1.0
+|   |   |   |   |--- SpatRange_outer >  6.50
+|   |   |   |   |   |--- class: 1.0
+|   |   |--- SpatRange_inner >  0.00
+|   |   |   |--- NPE_tot <= 15.50
+|   |   |   |   |--- NPE_inner <= 1.50
+|   |   |   |   |   |--- class: 0.0
+|   |   |   |   |--- NPE_inner >  1.50
+|   |   |   |   |   |--- class: 0.0
+|   |   |   |--- NPE_tot >  15.50
+|   |   |   |   |--- NAS_tot <= 6.50
+|   |   |   |   |   |--- class: 1.0
+|   |   |   |   |--- NAS_tot >  6.50
+|   |   |   |   |   |--- class: 1.0
+|--- NAS_outer >  5.50
+|   |--- NPE_tot <= 13.50
+|   |   |--- SpatlVar_inner <= -0.50
+|   |   |   |--- MeanNPEActive_outer <= 1.17
+|   |   |   |   |--- MeanNPEActive_tot <= 1.15
+|   |   |   |   |   |--- class: 0.0
+|   |   |   |   |--- MeanNPEActive_tot >  1.15
+|   |   |   |   |   |--- class: 1.0
+|   |   |   |--- MeanNPEActive_outer >  1.17
+|   |   |   |   |--- MeanNPEActive_tot <= 1.54
+|   |   |   |   |   |--- class: 1.0
+|   |   |   |   |--- MeanNPEActive_tot >  1.54
+|   |   |   |   |   |--- class: 1.0
+|   |   |--- SpatlVar_inner >  -0.50
+|   |   |   |--- SpatlVar_outer <= 33.69
+|   |   |   |   |--- MeanNPEActive_outer <= 1.54
+|   |   |   |   |   |--- class: 0.0
+|   |   |   |   |--- MeanNPEActive_outer >  1.54
+|   |   |   |   |   |--- class: 0.0
+|   |   |   |--- SpatlVar_outer >  33.69
+|   |   |   |   |--- class: 1.0
+|   |--- NPE_tot >  13.50
+|   |   |--- SpatRange_inner <= 3.50
+|   |   |   |--- NPE_outer <= 13.50
+|   |   |   |   |--- class: 1.0
+|   |   |   |--- NPE_outer >  13.50
+|   |   |   |   |--- NPE_tot <= 21.50
+|   |   |   |   |   |--- class: 1.0
+|   |   |   |   |--- NPE_tot >  21.50
+|   |   |   |   |   |--- class: 1.0
+|   |   |--- SpatRange_inner >  3.50
+|   |   |   |--- SpatRange_outer <= 17.50
+|   |   |   |   |--- NAS_outer <= 6.50
+|   |   |   |   |   |--- class: 1.0
+|   |   |   |   |--- NAS_outer >  6.50
+|   |   |   |   |   |--- class: 1.0
+|   |   |   |--- SpatRange_outer >  17.50
+|   |   |   |   |--- class: 1.0
